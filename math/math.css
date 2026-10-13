@@ -37,6 +37,8 @@
 .mlec h1 { margin: 6px 0 4px; font-size: 24px; font-weight: 500; letter-spacing: .05em; line-height: 1.45; text-wrap: balance; }
 .mlec h1 .lb { font: 500 15px var(--f-num); color: var(--acc); margin-right: 10px; letter-spacing: .04em; vertical-align: 3px; }
 .mlec .smeta { font-size: 13.5px; color: var(--sub); }
+.mlec .mpack { display: block; color: var(--acc); font-size: 13.5px; padding: 6px 0 0; text-align: left; line-height: 1.6; }
+.mlec .sf .mpack { padding: 0; }
 .mlec .goal { margin: 0 0 16px; padding: 10px 14px; border-radius: var(--r-s); background: var(--tint); font-size: 15.5px; line-height: 1.85; }
 .mlec h3.mh { margin: 30px 0 8px; font-size: 18px; font-weight: 600; letter-spacing: .04em; color: var(--text); scroll-margin-top: 70px; }
 .mlec ul, .mlec ol { margin: 8px 0; padding-left: 1.4em; }

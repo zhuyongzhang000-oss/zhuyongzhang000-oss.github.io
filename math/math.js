@@ -360,16 +360,19 @@
     K.render(`<article class="mlec${review ? " zf" : ""}" data-book="${esc(bid)}" data-sec="${esc(sid)}">
       <header class="sh"><div class="crumb">${esc(book.科目)}第${esc(book.讲)}讲 · ${esc(book.名称)}</div>
         <h1>${review ? "" : `<span class="lb">${esc(sec.label)}</span>`}${esc(review ? "总复习" : sec.title)}</h1>
-        <div class="smeta">${smeta}</div></header>
+        <div class="smeta">${smeta}</div>
+        <button class="link mpack" data-act="m:pack">复制学习包（整节讲义 + 我的作答，粘贴给 GPT）</button></header>
       ${body}
       <footer class="sf">
         <button class="btn${done ? "" : " primary"}" data-act="m:secdone" data-txt="${esc(doneTxt.join("|"))}">${done ? doneTxt[0] : doneTxt[1]}</button>
+        <button class="link mpack" data-act="m:pack">复制学习包，粘贴给 GPT 带着学</button>
         <div class="nav">${prev ? `<a class="link" href="#/math/sec/${bid}/${prev.id}">← ${esc(prev.label)}</a>` : "<span></span>"}
         ${next ? `<a class="btn" href="#/math/sec/${bid}/${next.id}">${next.kind === "review" ? "本讲总复习" : `${esc(next.label)} ${esc(next.title)}`} →</a>` : `<a class="btn" href="#/math/book/${bid}">回目录</a>`}</div>
       </footer></article>`, true);
     hydrate($("#view"));
     fitMath();
     updateDiag();
+    prefetchFormulaBooks(sec);
     if (at) { const el = document.getElementById(at); if (el) { el.scrollIntoView({ block: "start" }); window.scrollBy(0, -70); } }
     watchPosition(bid, sid);
     if (!(S.last && S.last.book === bid && S.last.sec === sid)) saveLast(bid, sid, "");
@@ -586,7 +589,116 @@
       `【参考答案】${q.answer || ""}\n${(q.idea || []).length ? `【思路】${plainBlocks(q.idea)}\n` : ""}【参考解答】\n${plainBlocks(q.sol)}\n\n【我卡在】（在这里写）`;
   }
 
+  /* ───── 复制学习包：整节讲义转成 Markdown（公式保留 $…$）+ 我在这一节的作答，粘贴给 GPT 就能按这一节带着学 ───── */
+  function fbookOf(name) { return (S.books || []).find(x => x.类型 === "公式本" && x.简称 === name); }
+  function mdInl(s, refs) {
+    return String(s || "").replace(/\[\[([^\]]+)\]\]/g, (_, body) => {
+      const [target, text] = body.split("|");
+      const fm = target.match(/^([^:：]+)[:：](.+)$/);
+      if (!fm) return text || target;                     // [[节3]]
+      const name = fm[1].trim(), fid = fm[2].trim(), fb = fbookOf(name);
+      if (refs) refs.add(`${name}:${fid}`);
+      const f = fb && BOOK[fb.id] && allFormulas(BOOK[fb.id]).find(x => x.id === fid);
+      return text || (f && f.name) || fid;                // 公式本身附在学习包最后
+    });
+  }
+  function qLabel(q) {
+    if (q.kind === "真题") return `真题 ${q.src.year}-${q.src.no}`;
+    if (q.id.startsWith("zf-")) return `综合题 ${q.id}`;
+    return `${q.kind} ${q.id}`;
+  }
+  function mdQ(q, refs) {
+    const meta = [q.type, q.src && q.src.score ? `${q.src.score} 分` : ""].filter(Boolean).join("，");
+    const L = [`#### ${qLabel(q)}${meta ? `（${meta}）` : ""}`, mdBlocks(q.q, refs)];
+    const opts = Object.entries(q.options || {});
+    if (opts.length) L.push(opts.map(([k, v]) => `${k}. ${mdInl(v, refs)}`).join("\n"));
+    (q.hints || []).forEach((h, i) => L.push(`提示 ${i + 1}：${mdBlocks(h, refs)}`));
+    if (q.answer) L.push(`答案：${mdInl(q.answer, refs)}`);
+    if ((q.idea || []).length) L.push(`思路：${mdBlocks(q.idea, refs)}`);
+    if ((q.sol || []).length) L.push(`解答：\n${mdBlocks(q.sol, refs)}`);
+    if ((q.note || []).length) L.push(`点评：${mdBlocks(q.note, refs)}`);
+    return L.filter(Boolean).join("\n");
+  }
+  function mdBlocks(arr, refs) {
+    return (arr || []).map(b => {
+      switch (b.t) {
+        case "p": return mdInl(b.text, refs);
+        case "h": return `### ${mdInl(b.text, refs)}`;
+        case "goal": return `> ${mdInl(b.text, refs)}`;
+        case "later": return `留整卷：${mdInl(b.text, refs)}`;
+        case "math": return `$$\n${b.tex}\n$$`;
+        case "ul": case "ol": return b.items.map((x, i) => (b.t === "ol" ? `${i + 1}. ` : "- ") + mdInl(x, refs)).join("\n");
+        case "table": return b.rows.map((r, i) => `| ${r.map(c => mdInl(c, refs)).join(" | ")} |` + (i ? "" : `\n|${r.map(() => " --- |").join("")}`)).join("\n");
+        case "box": return `**【${b.label}】${b.title ? mdInl(b.title, refs) : ""}**\n${mdBlocks(b.body, refs)}`;
+        case "recap": return `**【收口】**\n${mdBlocks(b.body, refs)}`;
+        case "ex": return [`**【例题】${b.title ? mdInl(b.title, refs) : ""}**`, mdBlocks(b.q, refs),
+          ...b.steps.map((s, i) => `第 ${i + 1} 步：${mdBlocks(s, refs)}`)].filter(Boolean).join("\n");
+        case "q": return mdQ(b, refs);
+        case "plot": return `（图：${b.lines.map(l => { const [main, ...o] = l.split("|").map(x => x.trim()); return o.filter(x => x !== "虚线")[0] || main; }).join("；")}）`;
+        case "cards": return `**【反应卡】**\n${b.items.map(c => `- ${mdInl(c[0], refs)} → ${mdInl(c[1], refs)}`).join("\n")}`;
+        case "f": return `- ${mdInl(b.name, refs)}：$${String(b.tex).split("\n").join("$；$")}$`;
+        default: return "";
+      }
+    }).filter(Boolean).join("\n\n");
+  }
+  function mdAnswers(bid, qs) {
+    const rows = qs.map(q => {
+      const item = `${bid}/${q.id}`, a = lastOf(item), w = reviewOf(item);
+      if (!a) return "";
+      const flags = String(a[2] || ""), h = flags.match(/h(\d)/);
+      const parts = [`最近一次${a[1] && !flags.includes("unsure") ? "做对" : a[1] ? "做对（看了第 2 层提示或解答，不算独立做对）" : "没做对"}`, `共做了 ${a[3] || 1} 次`];
+      if (a[0]) parts.push(`最近一次选了 ${a[0]}`);
+      if (h) parts.push(`最近一次看了 ${h[1]} 层提示`);
+      if (flags.includes("sol")) parts.push("先看了解答");
+      if (w && (w.state === "active" || w.state === "probation")) parts.push(w.state === "probation" ? "在错题本的抽查期" : "在错题本里");
+      return `- ${qLabel(q)}：${parts.join("，")}`;
+    }).filter(Boolean);
+    return rows.length ? rows.join("\n") : "还没做题";
+  }
+  function packText(bid, sid) {
+    const book = BOOK[bid], sec = book && book.sections.find(s => s.id === sid);
+    if (!sec) return "";
+    const refs = new Set();
+    const review = sec.kind === "review";
+    let body = mdBlocks(sec.blocks, refs);
+    if (review) {
+      body += "\n\n### 各节收口\n" + book.sections.filter(s => s.kind !== "review").map(s => {
+        const rc = s.blocks.find(b => b.t === "recap");
+        return `**${s.label} ${s.title}**：${rc ? mdBlocks(rc.body, refs) : "（没写收口）"}`;
+      }).join("\n");
+    }
+    let mine = mdAnswers(bid, sec.blocks.filter(b => b.t === "q"));
+    if (review) {
+      const pend = ztNotOk(book);
+      if (pend.length) mine += `\n\n本讲 2010–2019 年真题还没做对的：${pend.map(x => `${x.q.src.year}-${x.q.src.no}（${x.st}）`).join("、")}`;
+    }
+    const fs = [...refs].map(r => {
+      const [name, fid] = r.split(":"), fb = fbookOf(name);
+      const f = fb && BOOK[fb.id] && allFormulas(BOOK[fb.id]).find(x => x.id === fid);
+      return f ? `- ${mdInl(f.name)}：$${String(f.tex).split("\n").join("$；$")}$${f.note ? `（${mdInl(f.note)}）` : ""}` : "";
+    }).filter(Boolean);
+    return `【数学学习包 v1】${book.科目}第${book.讲}讲 · ${review ? "总复习" : `${sec.label} ${sec.title}`}\n` +
+      `下面是我正在学的一节讲义和我在这一节的作答情况。请按这节讲义带我学：\n` +
+      `① 先问我卡在哪，从卡点讲起，讲细，多用具体数字的小例子；\n` +
+      `② 讲完出 1–2 道同类题让我做，我做完你再讲评；\n` +
+      `③ 包里有题目的答案和解析，我没要之前不要直接给，按提示一层一层来；\n` +
+      `④ 不要读取或写入 Notion；我说「同步」时，再按项目说明把这节课暴露的薄弱点写进 Notion。\n\n` +
+      `## 讲义正文\n\n${body}\n\n` +
+      (fs.length ? `## 这一节用到的公式（公式本）\n\n${fs.join("\n")}\n\n` : "") +
+      `## 我在这一节的作答\n\n${mine}\n`;
+  }
+  // 公式本先在后台读好：点「复制学习包」时要同步拼出文字（等网络会丢掉点击，平板上复制会失败）
+  function prefetchFormulaBooks(sec) {
+    const names = new Set();
+    JSON.stringify(sec.blocks).replace(/\[\[([^\]|:：]+)[:：]/g, (_, n) => names.add(n.trim()));
+    names.forEach(n => { const fb = fbookOf(n); if (fb) getBook(fb.id).catch(() => {}); });
+  }
+
   K.acts({
+    "m:pack": el => {
+      if (!secCur) return;
+      K.copyText(packText(secCur.book, secCur.sec)).then(ok => K.toast(ok ? "学习包复制好了，粘贴给 GPT" : "没复制上，再点一次试试"));
+    },
     "m:step": el => {
       const ex = document.getElementById(el.dataset.ex), n = +ex.dataset.n;
       let shown = +ex.dataset.shown;
