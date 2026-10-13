@@ -95,7 +95,7 @@
       case "ol": return `<ol>${b.items.map(x => `<li>${inl(x, ctx)}</li>`).join("")}</ol>`;
       case "math": return `<div class="mx">${tex(b.tex, true)}</div>`;
       case "table": return `<div class="tw"><table>${b.rows.map((r, i) => `<tr>${r.map(c => i ? `<td>${inl(c, ctx)}</td>` : `<th>${inl(c, ctx)}</th>`).join("")}</tr>`).join("")}</table></div>`;
-      case "box": return `<div class="mbox ${b.kind}"><div class="ml">${esc(b.label)}${b.title ? ` · ${inl(b.title, ctx)}` : ""}</div>${blocks(b.body, ctx)}</div>`;
+      case "box": return `<div class="mbox ${b.kind}"><div class="ml">${b.kind === "recall" ? "先回顾 · 这一节要用到的旧知识" : esc(b.label)}${b.title ? ` · ${inl(b.title, ctx)}` : ""}</div>${blocks(b.body, ctx)}</div>`;
       case "ex": return example(b, ctx);
       case "q": return problem(b, ctx);
       case "recap": return `<div class="recap" id="recap" data-at="recap"><div class="ml">收口</div><p class="ask">合上讲义想一想：这类题怎么认？第一步做什么？</p>
@@ -173,7 +173,7 @@
     const choice = q.type === "选择" && Object.keys(q.options).length;
     const meta = [q.type, q.src && q.src.score ? `${q.src.score} 分` : ""].filter(Boolean).join(" · ");
     let html = `<section class="mq${st.res ? " " + st.res : ""}" id="q-${esc(q.id)}" data-at="q-${esc(q.id)}" data-item="${esc(item)}">
-      <header class="qh"><span class="qtag${q.kind === "真题" ? " zt" : ""}">${esc(qTag(q))}</span>${meta ? `<span class="qmeta">${esc(meta)}</span>` : ""}<span class="sp"></span>${statusChip(item)}</header>
+      <header class="qh"><span class="qtag${q.kind === "真题" ? " zt" : ""}">${esc(qTag(q))}</span>${meta ? `<span class="qmeta">${esc(meta)}</span>` : ""}${q.hard ? `<span class="qhard" title="难、又占分少：第一轮可以先跳过，第二轮再攻">第二轮再做</span>` : ""}<span class="sp"></span>${statusChip(item)}</header>
       <div class="qb">${blocks(q.q, ctx)}</div>`;
     if (choice) {
       html += `<div class="opts">${Object.entries(q.options).map(([k, v]) => {
@@ -193,7 +193,12 @@
       if (!choice && q.answer) html += `<p class="mkey"><b>答案</b>${inl(q.answer, ctx)}</p>`;
       if ((q.idea || []).length) html += `<div class="midea"><span class="il">思路</span>${blocks(q.idea, ctx)}</div>`;
       const note = (q.note || []).length ? `<div class="mnote"><span class="il">点评</span>${blocks(q.note, ctx)}</div>` : "";
-      if (q.sol.length || note) {
+      if ((q.steps || []).length) {           // 新写法：审题、卡点、排除点开看；分步过程一步一步揭开
+        const part = (k, title, arr) => (arr || []).length ? `<details class="mpart ${k}"><summary>${title}</summary><div class="mpb">${blocks(arr, ctx)}</div></details>` : "";
+        html += part("read", "审题：条件一条条翻译成数学话", q.read) + part("stuck", "卡点：最容易卡在哪、怎么过去", q.stuck)
+          + part("elim", "排除法：其他选项错在哪", q.elim) + stepsHtml(q, st, ctx)
+          + ((q.back || []).length ? `<div class="mback"><span class="il">回头看</span>${blocks(q.back, ctx)}</div>` : "") + note;
+      } else if (q.sol.length || note) {
         const openSol = !choice || (st.res === "bad");
         html += `<details class="sol"${openSol ? " open" : ""}><summary>${choice ? "看详细解析" : "详细解答"}</summary>${blocks(q.sol, ctx)}${note}</details>`;
       }
@@ -209,6 +214,13 @@
       html += `<div class="qfoot"><button class="link" data-act="m:gpt">问 GPT</button>${st.res ? `<button class="link" data-act="m:redo">重做这题</button>` : ""}</div></div>`;
     }
     return html + `</section>`;
+  }
+  function stepsHtml(q, st, ctx) {
+    const n = q.steps.length, shown = Math.min(st.steps || 0, n);
+    return `<div class="msteps" data-n="${n}"><div class="msh"><span class="il">分步过程</span><span class="faint">${n} 步 · 每一步先写为什么，再写算出什么</span></div>
+      ${(q.sol || []).length ? `<div class="mintro">${blocks(q.sol, ctx)}</div>` : ""}
+      ${q.steps.map((s, i) => `<div class="step" data-i="${i}"${i < shown ? "" : " hidden"}><span class="sn">${i + 1}</span><div>${blocks(s, ctx)}</div></div>`).join("")}
+      ${shown < n ? `<div class="exacts"><button class="btn small" data-act="m:qstep">${shown ? `下一步（${shown}/${n}）` : "先自己想第一步，想好了点这里"}</button><button class="link" data-act="m:qall">全部展开</button></div>` : ""}</div>`;
   }
   function resultLine(q, item, st) {
     let msg;
@@ -275,7 +287,7 @@
     }
     if (!books.length && !fbooks.length) html += `<p class="placeholder">data/math 里还没有讲义。</p>`;
     if ((S.problems || []).length) html += `<details class="more" style="margin-top:18px"><summary>讲义文件有 ${S.problems.length} 处写法问题（给维护的人看）</summary><ul>${S.problems.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>`;
-    html += `<p class="note">讲义按真题来写：每节先测两道，会了直接做真题；不会就看讲解、例题，做练习。卡住先看提示，提示一层层给。</p></div>`;
+    html += `<p class="note">讲义按真题来写：第一次学就从回顾、讲解、例题读起，做练习；学过的每节先测两道，会了直接做真题。卡住先看提示，提示一层层给；标「第二轮再做」的题第一轮可以跳过。</p></div>`;
     K.render(html, true);
   }
 
@@ -345,8 +357,10 @@
         const group = [];
         while (i < sec.blocks.length && sec.blocks[i].t === "q" && sec.blocks[i].kind === "诊断") group.push(sec.blocks[i++]);
         i--;
-        body += `<div class="diag" data-at="diag"><div class="dh"><b>先测一下</b><span class="mute">${group.length} 题，几分钟。都做对就可以跳过讲解，直接去做真题。</span></div>
-          ${group.map(q => problem(q, ctx)).join("")}<div class="dfoot" hidden></div></div>`;
+        // 第一次学的人做不出来，先折起来；学过（这一节标过学完、或者做过诊断）就默认展开
+        const tried = (S.done || {})[`${bid}/${sid}`] || group.some(q => lastOf(`${bid}/${q.id}`));
+        body += `<details class="diag" data-at="diag"${tried ? " open" : ""}><summary class="dh"><b>先测一下</b><span class="mute">学过的点开测 ${group.length} 题，都做对就直接去做真题；第一次学不用做，直接往下读。</span></summary>
+          ${group.map(q => problem(q, ctx)).join("")}<div class="dfoot" hidden></div></details>`;
         continue;
       }
       body += block(b, ctx);
@@ -586,7 +600,8 @@
       `【出处】${meta ? `${meta.科目}第${meta.讲}讲 ${meta.名称}` : ""} · ${q.kind === "真题" ? `${q.src.year} 年数二第 ${q.src.no} 题` : q.kind}\n` +
       `【题目】\n${plainBlocks(q.q)}${opts ? "\n" + opts : ""}\n\n` +
       `【我的情况】${mine.join("；")}\n${seen ? `【我看过的提示】\n${seen}\n` : ""}\n` +
-      `【参考答案】${q.answer || ""}\n${(q.idea || []).length ? `【思路】${plainBlocks(q.idea)}\n` : ""}【参考解答】\n${plainBlocks(q.sol)}\n\n【我卡在】（在这里写）`;
+      `【参考答案】${q.answer || ""}\n${(q.idea || []).length ? `【思路】${plainBlocks(q.idea)}\n` : ""}${(q.read || []).length ? `【审题】${plainBlocks(q.read)}\n` : ""}` +
+      `【参考解答】\n${[plainBlocks(q.sol), ...(q.steps || []).map((x, i) => `第 ${i + 1} 步：${plainBlocks(x)}`)].filter(Boolean).join("\n")}\n\n【我卡在】（在这里写）`;
   }
 
   /* ───── 复制学习包：整节讲义转成 Markdown（公式保留 $…$）+ 我在这一节的作答，粘贴给 GPT 就能按这一节带着学 ───── */
@@ -608,14 +623,19 @@
     return `${q.kind} ${q.id}`;
   }
   function mdQ(q, refs) {
-    const meta = [q.type, q.src && q.src.score ? `${q.src.score} 分` : ""].filter(Boolean).join("，");
+    const meta = [q.type, q.src && q.src.score ? `${q.src.score} 分` : "", q.hard ? "标了「第二轮再做」" : ""].filter(Boolean).join("，");
     const L = [`#### ${qLabel(q)}${meta ? `（${meta}）` : ""}`, mdBlocks(q.q, refs)];
     const opts = Object.entries(q.options || {});
     if (opts.length) L.push(opts.map(([k, v]) => `${k}. ${mdInl(v, refs)}`).join("\n"));
     (q.hints || []).forEach((h, i) => L.push(`提示 ${i + 1}：${mdBlocks(h, refs)}`));
     if (q.answer) L.push(`答案：${mdInl(q.answer, refs)}`);
     if ((q.idea || []).length) L.push(`思路：${mdBlocks(q.idea, refs)}`);
-    if ((q.sol || []).length) L.push(`解答：\n${mdBlocks(q.sol, refs)}`);
+    if ((q.read || []).length) L.push(`审题：\n${mdBlocks(q.read, refs)}`);
+    if ((q.stuck || []).length) L.push(`卡点：\n${mdBlocks(q.stuck, refs)}`);
+    if ((q.elim || []).length) L.push(`排除法：\n${mdBlocks(q.elim, refs)}`);
+    if ((q.steps || []).length) L.push(`分步过程：\n${(q.sol || []).length ? mdBlocks(q.sol, refs) + "\n" : ""}${q.steps.map((st, i) => `第 ${i + 1} 步：${mdBlocks(st, refs).replace(/\n\n/g, "\n")}`).join("\n")}`);
+    else if ((q.sol || []).length) L.push(`解答：\n${mdBlocks(q.sol, refs)}`);
+    if ((q.back || []).length) L.push(`回头看：${mdBlocks(q.back, refs)}`);
     if ((q.note || []).length) L.push(`点评：${mdBlocks(q.note, refs)}`);
     return L.filter(Boolean).join("\n");
   }
@@ -713,6 +733,22 @@
       ex.dataset.shown = ex.dataset.n;
       $(".exacts", ex).remove();
       fitMath(ex);
+    },
+    "m:qstep": el => {
+      const { item } = qOf(el), box = el.closest(".msteps"), n = +box.dataset.n;
+      const st = QS[item] = QS[item] || {};
+      st.steps = Math.min(n, (st.steps || 0) + 1);
+      const step = $(`.step[data-i="${st.steps - 1}"]`, box);
+      if (step) { step.hidden = false; fitMath(step); }
+      if (st.steps >= n) $(".exacts", box).remove(); else el.textContent = `下一步（${st.steps}/${n}）`;
+    },
+    "m:qall": el => {
+      const { item } = qOf(el), box = el.closest(".msteps");
+      const st = QS[item] = QS[item] || {};
+      st.steps = +box.dataset.n;
+      $$(".step", box).forEach(x => (x.hidden = false));
+      $(".exacts", box).remove();
+      fitMath(box);
     },
     "m:hint": el => { const { item } = qOf(el); const st = QS[item] = QS[item] || {}; st.hints = (st.hints || 0) + 1; redraw(el); },
     "m:check": el => {
