@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
+<title>环13 文件讲义</title>
+<meta name="description" content="C 语言环13：fopen/fclose 四步、打开方式、fgetc/fputc、fgets/fputs、fprintf/fscanf、fread/fwrite、feof 的坑、fseek/rewind/ftell，以及 FILE、文本和二进制、EOF、stdin/stdout 等考点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版式：布面唱片封面。七种中明度布色轮换（石板蓝、赭黄、鼠尾草、灰粉、青绿、薰衣草、暖灰），
+   每一环的页头是一块圆角布面，正文是一张安静的纸。字距拉开的人文无衬线，留白多，字像压印在布上。 */
+:root {
+  /* 纸和墨 */
+  --desk: #d9d4ca;  --paper: #f5f2eb;  --tint: #ece7dd;
+  --text: #2e302b;  --sub: #6b6960;  --faint: #8f8b80;  --rule: #ddd6c8;
+  --code-bg: #ebe6dc;
+  --r: 16px;  --r-s: 10px;   /* 圆角 */
+  --pen: #b5482a;           /* 答案：红笔 */
+  --tok-kw: #3d5462;  --tok-str: #a8502c;  --tok-num: #8f6510;  --tok-com: #8f8a7c;  --tok-pre: #7d5a3c;
+  /* Atkinson Hyperlegible：0 带斜线、1 l I 分得开，数字是等高的 */
+  --f-latin: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+           repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+    --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+    --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+  --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+  --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+  color-scheme: dark;
+}
+/* 七块布：布色 / 布上标题 / 布上正文 / 纸上强调色（浅、深两种模式） */
+:root, [data-tone="a"] { --cloth: #56707f; --ink: #f4b788; --soft: #f1f1ec; --acc-l: #a5592c; --acc-d: #e8a06c; }
+[data-tone="b"] { --cloth: #cda85a; --ink: #8e361b; --soft: #3a2712; --acc-l: #a34622; --acc-d: #e8895f; }
+[data-tone="c"] { --cloth: #97a68a; --ink: #36294a; --soft: #232a1f; --acc-l: #55703f; --acc-d: #b3c79f; }
+[data-tone="d"] { --cloth: #cfa194; --ink: #5a2632; --soft: #3a1f24; --acc-l: #a24a4f; --acc-d: #ec9aa0; }
+[data-tone="e"] { --cloth: #477774; --ink: #f5d89e; --soft: #f1f3ee; --acc-l: #2c706c; --acc-d: #8cc7c0; }
+[data-tone="f"] { --cloth: #a7a1c0; --ink: #2c2752; --soft: #221f38; --acc-l: #5c5397; --acc-d: #b7afe0; }
+[data-tone="g"] { --cloth: #6e6c63; --ink: #f2c565; --soft: #f5f0e4; --acc-l: #8a610c; --acc-d: #e2a129; }
+:root, [data-tone] { --acc: var(--acc-l); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]), :root:not([data-theme="light"]) [data-tone] { --acc: var(--acc-d); } }
+:root[data-theme="dark"], :root[data-theme="dark"] [data-tone] { --acc: var(--acc-d); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; color: var(--text); font: 17px/1.9 var(--f-body); -webkit-text-size-adjust: 100%; font-variant-numeric: lining-nums;
+  background: var(--desk); background-image: var(--linen); }
+a { color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+b, strong { font-weight: 700; }
+code, pre { font-family: var(--f-code); font-size: .84em; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+:not(pre) > code { background: var(--tint); padding: .08em .4em; border-radius: 5px; white-space: pre-wrap;
+  display: inline-block; max-width: 100%; line-height: 1.55; vertical-align: baseline; }
+::selection { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+:focus-visible { outline: 1.5px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+.ic { width: 1em; height: 1em; flex: none; vertical-align: -.12em; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+#progress { position: fixed; left: 0; top: env(safe-area-inset-top, 0px); height: 2px; width: 0; z-index: 30;
+  background: var(--acc); transition: width .1s linear; }
+
+/* 布局：左边一列目录，右边一张纸 */
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 28px; padding-block: 40px 110px;
+  display: grid; grid-template-columns: 190px minmax(0, 790px); justify-content: center; gap: 48px; }
+main { min-width: 0; max-width: 790px; background: var(--paper); padding: 0 72px 64px; border-radius: var(--r); overflow: clip;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -24px rgba(0,0,0,.35); }
+
+/* 目录 */
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start;
+  max-height: calc(100vh - 56px); overflow-y: auto; padding-block: 4px 24px; font-size: 14px; line-height: 1.55; scrollbar-width: thin; }
+.toc .home { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--sub); text-decoration: none;
+  font: 15px/1 var(--f-latin); letter-spacing: .12em; }
+.toc .home:hover { color: var(--acc); }
+.toc p { margin: 22px 0 6px; color: var(--faint); font-size: 12px; letter-spacing: .16em; }
+.toc > p:first-child, .toc .home + p { margin-top: 0; }
+.toc a { display: block; padding: 3px 0 3px 12px; border-left: 1.5px solid transparent; color: var(--sub); text-decoration: none; transition: color .2s, border-color .2s; }
+.toc a:hover { color: var(--text); }
+.toc a.cur { color: var(--acc); border-left-color: var(--acc); }
+.toc-m { display: none; }
+
+/* 页头：一张布面封面 */
+header { margin: 0 -72px; padding: 76px 72px 52px; color: var(--ink);
+  background: var(--cloth); background-image: var(--linen); position: relative; }
+.kicker { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  font: 500 15px/1.4 var(--f-latin); letter-spacing: .16em; opacity: .9; }
+.kicker a { color: inherit; text-decoration: none; }
+.kicker a:hover { text-decoration: underline; }
+.chip { font: inherit; letter-spacing: .2em; }
+h1 { font-weight: 400; font-size: clamp(30px, 5vw, 42px); line-height: 1.35; margin: 64px 0 22px; letter-spacing: .14em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 -1px 0 rgba(255,255,255,.06); text-wrap: balance; }
+.intro p { margin: 0 0 8px; color: var(--soft); font-size: 15.5px; line-height: 1.85; max-width: 38em; opacity: .92; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 28px; font-size: 14px;
+  color: var(--soft); }
+header :not(pre) > code { background: color-mix(in srgb, var(--soft) 16%, transparent); color: var(--soft); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-body); letter-spacing: .08em; color: var(--ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; padding: 10px 20px; cursor: pointer;
+  transition: background .2s; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--cloth); }
+.resume { display: none; margin-top: 20px; padding: 12px 0 0; font-size: 14.5px; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+.resume.on { display: flex; }
+.resume a { color: var(--ink); font-weight: 600; }
+.resume button { margin-left: auto; font: inherit; font-size: 13px; color: inherit; background: none; border: 0; cursor: pointer; opacity: .8; }
+
+/* 两大部分 */
+.part { margin-top: 84px; }
+.part .pic { display: none; }
+.part h2 { font-weight: 400; font-size: 25px; line-height: 1.4; margin: 0; letter-spacing: .14em; color: var(--acc); }
+.part h2::before { content: ""; display: block; width: 28px; height: 1.5px; background: var(--acc); margin-bottom: 18px; }
+.part > p { margin: 8px 0 0; color: var(--sub); font-size: 15.5px; }
+
+/* 每一节 */
+.sec { padding-top: 56px; scroll-margin-top: 20px; }
+.part + .sec { padding-top: 26px; }
+.sec h3 { font-weight: 500; font-size: 20px; line-height: 1.5; margin: 0 0 14px; letter-spacing: .04em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 14px; }
+.sec h3 .no { flex: none; font: 500 16px/1 var(--f-latin); color: var(--acc); letter-spacing: .08em; min-width: 1.4em; }
+.sec h3 .t { flex: 1; min-width: 0; }
+.secbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 13px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 4px 0; cursor: pointer; transition: color .2s, border-color .2s; white-space: nowrap; }
+.secbtn:hover { color: var(--acc); border-bottom-color: var(--acc); }
+.secbtn[hidden] { display: none; }
+.sec p { margin: 14px 0; }
+.sec ul { margin: 14px 0; padding-left: 1.2em; }
+.sec li { margin: 8px 0; }
+.sec li::marker { color: var(--acc); }
+.mute { color: var(--sub); }
+.small { font-size: 14.5px; }
+mark { background: color-mix(in srgb, var(--ink) 25%, transparent); color: inherit; padding: 0 .15em; }
+
+/* 空：一段虚线，点开后红笔写上 */
+.a { color: var(--pen); font-weight: 600; }
+.hide .a:not(.on) { color: transparent !important; cursor: pointer; user-select: none; border-radius: 4px 4px 0 0;
+  display: inline-block; width: 3.4em; height: 1.3em; overflow: hidden; white-space: nowrap; vertical-align: -0.24em;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--acc) 70%, transparent); transition: background .2s; }
+.hide .a:not(.on):hover { background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.hide .a:not(.on) * { visibility: hidden; }
+.a.on, .wrap:not(.hide) .a { animation: ink .4s ease-out; }
+.a code { color: inherit; background: transparent; padding: 0; }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+
+.trap { text-decoration: underline wavy var(--pen); text-decoration-thickness: 1.2px; text-underline-offset: 4px; }
+
+/* 代码 */
+.code { position: relative; margin: 20px 0; background: var(--code-bg); border-radius: var(--r-s); }
+.code .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0 20px; font: 12px/1 var(--f-latin); letter-spacing: .2em; color: var(--faint); }
+.code .hd > .ic, .code .dots { display: none; }
+.code pre { margin: 0; padding: 8px 20px 16px; overflow-x: auto; line-height: 1.75; font-size: 14px; }
+.copy { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-transform: none; }
+.copy:hover { color: var(--acc); }
+.t-kw { color: var(--tok-kw); font-weight: 600; }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-com { color: var(--tok-com); font-style: italic; }
+.t-pre { color: var(--tok-pre); }
+pre.o { font-family: var(--f-code); color: var(--sub); }
+
+.hide .oa:not(.on) { cursor: pointer; }
+.hide .oa:not(.on) pre { color: transparent; user-select: none; background-image: var(--linen); }
+.hide .oa:not(.on)::after { content: "先在纸上画出来，再点一下看输出"; position: absolute; left: 20px; top: 42px;
+  font: 14px/1.4 var(--f-body); color: var(--sub); letter-spacing: .04em; }
+.hide .oa:not(.on) .copy { visibility: hidden; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.pair .code { margin: 0; }
+.pair .lab { font-size: 13px; color: var(--acc); letter-spacing: .1em; margin-bottom: 6px; }
+
+/* 写法 → 结果 */
+.calc { display: grid; grid-template-columns: fit-content(55%) max-content minmax(0, 1fr); gap: 0 18px;
+  margin: 18px 0; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.calc > * { padding: 8px 0; }
+.calc > code:not(.a) { justify-self: start; white-space: pre-wrap; margin: 6px 0; padding: .15em .5em; }
+.calc > :nth-child(3n+1) { min-width: 0; }
+.calc .arrow { color: var(--faint); font-size: 14px; }
+.calc .note { color: var(--sub); font-size: 14.5px; }
+
+.tbl { overflow-x: auto; margin: 18px 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 50%; }
+th, td { padding: 8px 22px 8px 0; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--faint); font-size: 12.5px; letter-spacing: .14em; }
+td code { white-space: nowrap; }
+
+/* 真题、注意 */
+.exam, .fix { margin: 24px 0 0; padding: 14px 20px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--acc) 7%, transparent); }
+.exam > p:first-child, .fix .ft { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12.5px; letter-spacing: .2em; color: var(--acc); }
+.q { margin: 9px 0; }
+.src { font: 13px/1 var(--f-latin); color: var(--faint); margin-left: 12px; white-space: nowrap; letter-spacing: .06em; }
+.fix { background: color-mix(in srgb, var(--pen) 7%, transparent); font-size: 15.5px; }
+.fix .ft { color: var(--pen); }
+
+.out { font-family: var(--f-code); font-size: .84em; white-space: pre; background: var(--code-bg); padding: .08em .4em; border-radius: 5px; }
+
+/* 回顾：一小块浅色布 */
+.recall { margin: 0 -72px; padding: 30px 72px 26px; scroll-margin-top: 20px; background: var(--tint); }
+.recall h2 { font-weight: 500; font-size: 15px; letter-spacing: .2em; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--acc); }
+.recall h2 .secbtn { margin-left: auto; }
+.recall > p { margin: 0 0 10px; color: var(--sub); font-size: 14.5px; }
+.recall .q { margin: 8px 0; }
+.recall :not(pre) > code { background: var(--paper); }
+
+/* 结尾 */
+.end { margin-top: 84px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.end h2 { font-weight: 400; font-size: 22px; letter-spacing: .14em; color: var(--acc); margin: 0 0 8px; }
+.ringnav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; font-size: 15px; }
+.ringnav a, .ringnav span { flex: 1 1 0; min-width: 0; }
+.ringnav a { text-decoration: none; padding: 14px 18px; color: var(--text); border: 1px solid var(--rule); border-radius: var(--r-s); transition: border-color .2s, background .2s; }
+.ringnav a:hover { background: color-mix(in srgb, var(--acc) 6%, transparent); }
+.ringnav a:hover { border-color: var(--acc); }
+.ringnav a small { display: block; font: 12.5px/1.4 var(--f-latin); letter-spacing: .16em; color: var(--faint); }
+.ringnav a:nth-child(2) { text-align: center; }
+.ringnav a:last-child { text-align: right; }
+.keys { margin-top: 20px; font-size: 13px; color: var(--faint); letter-spacing: .04em; }
+.keys kbd { font: 12px/1 var(--f-code); border: 1px solid var(--rule); border-radius: 5px; padding: 2px 6px; color: var(--sub); }
+details.legend { margin-top: 26px; font-size: 14px; color: var(--sub); }
+details.legend summary { cursor: pointer; }
+details.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; margin: 10px 0 0; }
+details.legend dt { font: 13px/1.8 var(--f-latin); letter-spacing: .06em; }
+details.legend dd { margin: 0; }
+
+/* 目录页：13 张小卡，每张左边一块圆角布面色签 */
+.rings { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rings li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: center;
+  padding: 10px 14px 10px 10px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.rings li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cloth) 70%, transparent);
+  box-shadow: 0 10px 22px -16px rgba(0,0,0,.5); }
+.rings .rn { grid-row: 1 / span 3; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--cloth); background-image: var(--linen); color: var(--ink); font: 500 17px/1 var(--f-latin); letter-spacing: .08em; }
+.rings a { font-weight: 500; font-size: 16px; line-height: 1.45; letter-spacing: .06em; color: var(--text); text-decoration: none; }
+.rings a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.rings p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rings li.last { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 6%, var(--paper)); }
+.rings li.last a::before { content: "上次 · "; color: var(--acc); font-size: 13px; letter-spacing: .1em; }
+.rings li.last p:last-child { color: var(--acc) !important; }
+
+/* 浮动按钮 */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fab.on { opacity: 1; pointer-events: auto; }
+.fab button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cloth); background-image: var(--linen); color: var(--ink);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.6); cursor: pointer; display: grid; place-items: center; }
+.fab .m { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 40; display: none; }
+.drawer.on { display: block; }
+.drawer .shade { position: absolute; inset: 0; background: rgba(20, 20, 18, .45); }
+.drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(80vw, 310px); background: var(--paper); border-radius: var(--r) 0 0 var(--r);
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 24px 28px; overflow-y: auto; }
+.drawer .toc { display: block; position: static; max-height: none; padding: 0; font-size: 15px; }
+
+/* 窄于 1100（分屏、平板）：目录收进抽屉，纸张居中 */
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 790px); gap: 0; padding-inline: 24px; }
+  .wrap > .toc { display: none; }
+  .toc-m { display: block; margin-top: 22px; font-size: 15px; color: var(--ink); }
+  .toc-m summary { cursor: pointer; letter-spacing: .1em; }
+  .toc-m .toc { display: block; position: static; max-height: none; padding: 10px 0 0; columns: 2; column-gap: 24px; }
+  .toc-m .toc a { color: inherit; opacity: .85; border-left: 0; padding-left: 0; }
+  .toc-m .toc p { break-after: avoid; color: inherit; opacity: .6; }
+  .fab .m { display: grid; }
+  .keys { display: none; }
+}
+/* 手机：纸张铺满 */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 0; padding-block: 0 80px; }
+  main { padding: 0 20px 48px; box-shadow: none; border-radius: 0; }
+  header { margin: 0 -20px; padding: 48px 20px 36px; border-radius: 0 0 22px 22px; }
+  h1 { margin-top: 40px; }
+  .recall { margin: 0 -20px; padding: 24px 20px 20px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; line-height: 1.9; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .calc { grid-template-columns: minmax(0, 1fr); }
+  .calc > * { padding: 3px 0; }
+  .calc .arrow { display: none; }
+  .calc > :nth-child(3n) { padding-left: 1em; padding-bottom: 10px; }
+  .src { display: block; margin: 4px 0 0; }
+  .sec h3 { flex-wrap: wrap; }
+  .secbtn { margin-left: auto; }
+  .rings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  pre.fig { font-size: 13px; }
+  .stem { padding: 12px 14px; }
+  .ringnav a:nth-child(2) { order: 3; flex-basis: 100%; }
+}
+
+/* 5 道真题 */
+.prob { padding-top: 48px; }
+.prob h3 .no { font-weight: 700; }
+.pmeta { margin: -6px 0 12px !important; font-size: 13.5px; color: var(--faint); letter-spacing: .04em; }
+.ptag { display: inline-block; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+  color: var(--acc); background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.stem { padding: 14px 18px; border-radius: var(--r-s); background: var(--tint); }
+.stem p, .req p { margin: 6px 0 !important; }
+pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space: pre; overflow-x: auto; background: none; }
+.req { margin-top: 14px; }
+.req .lab, .io .lab { margin: 0 0 2px !important; font-size: 12.5px; letter-spacing: .16em; color: var(--faint); }
+.hints { list-style: none; padding: 0 !important; margin: 12px 0 0 !important; font-size: 15.5px; }
+.hints li { margin: 4px 0 !important; }
+.hints b { font-weight: 600; color: var(--acc); margin-right: .6em; }
+.hints b::after { content: "："; display: none; }
+.refs { margin: 10px 0 0 !important; font-size: 14px; color: var(--faint); }
+.refs a { margin-right: 6px; text-decoration: none; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.prog { margin-top: 16px; }
+.prog-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: transparent;
+  color: var(--acc); border-radius: 999px; padding: 6px 16px; font: 500 14px/1.2 var(--f-body); letter-spacing: .06em; cursor: pointer; }
+.prog-btn:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.hide .prog:not(.on) .prog-body { display: none; }
+.wrap:not(.hide) .prog-btn { display: none; }
+.prog-body { margin-top: 12px; }
+.prog-body .code { margin: 10px 0; }
+.tip { margin: 0 !important; padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; background: color-mix(in srgb, var(--pen) 7%, transparent); }
+.tip b { color: var(--pen); font-weight: 600; margin-right: .7em; }
+.io { margin: 10px 0 0; }
+.io pre { margin: 0; padding: 10px 16px; border-radius: var(--r-s); background: var(--code-bg); font: 14px/1.65 var(--f-code); overflow-x: auto; color: var(--sub); }
+</style>
+
+<div id="progress" aria-hidden="true"></div>
+<div class="wrap hide" id="root" data-ring="13" data-name="文件" data-home="index.html" data-tone="f">
+  <nav class="toc" id="toc" aria-label="目录"></nav>
+  <main>
+    <header>
+      <p class="kicker"><a href="index.html">C 语言讲义</a><span class="chip">环 13</span></p>
+      <h1>文件</h1>
+      <div class="intro">
+        <p>文件题的算法都是前面学过的（转大写、排序、合并），新的只有「从哪读、往哪写」。记住四步：<b>打开 → 判断是不是 NULL → 读写 → 关闭</b>，再记住几组读写函数和它们读到结尾时返回什么。</p>
+      </div>
+      <div class="tools">
+        <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
+      </div>
+      <div class="resume" id="resume"></div>
+      <details class="toc-m"><summary>目录</summary><nav class="toc" id="toc-m" aria-label="目录"></nav></details>
+    </header>
+<div class="part" id="zt">
+<h2>5 道真题</h2>
+<p>先自己写，写完再打开完整程序对照。每个程序都编译运行过，下面的运行结果就是它的真实输出。</p>
+</div>
+<section class="sec prob" id="t1" data-short="题1 转大写存文件">
+<h3><span class="no">题1</span><span class="t">转大写存文件</span></h3>
+<p class="pmeta"><span class="ptag">代表题</span> · 教材第10章习题3（也是圣才考研真题精选综合题7）</p>
+<div class="stem"><p>从键盘输入一个字符串，将其中的小写字母全部转换成大写字母，然后输出到一个磁盘文件 test 中保存，输入的字符串以「!」结束。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>save_upper(in, filename)</code>：从 in 一个字符一个字符地读（<code>fgetc(in)</code>），读到 '!' 或文件结束就停；小写字母变大写，其他字符原样；全部写进名为 filename 的文件（"w" 方式），最后关闭文件。</p>
+<p>'!' 本身不写。考试时把 <code>fgetc(in)</code> 换成 <code>getchar()</code> 就是原题。</p></div>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s3">③</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>ch 用 int；判 NULL；'!' 不写；最后 fclose。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void save_upper(FILE *in, const char *filename)
+{
+    FILE *fp = fopen(filename, "w");
+    int ch;
+    if (fp == NULL) { printf("打不开文件\n"); return; }
+    while ((ch = fgetc(in)) != EOF &amp;&amp; ch != '!') {
+        if (ch &gt;= 'a' &amp;&amp; ch &lt;= 'z') ch = ch - 32;
+        fputc(ch, fp);
+    }
+    fclose(fp);
+}
+
+int main(void)
+{
+    save_upper(stdin, "test");       /* 键盘就是 stdin */
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>Hello, world! 后面的不要</pre></div>
+<div class="io"><p class="lab">运行后文件 test 的内容</p><pre>HELLO, WORLD</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t2" data-short="题2 写入再读出">
+<h3><span class="no">题2</span><span class="t">写入再读出</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第10章习题11</p>
+<div class="stem"><p>从键盘输入若干行字符（每行长度不等），输入后把它们存储到一磁盘文件中。</p>
+<p>再从该文件中读入这些数据，将其中小写字母转换成大写字母后在显示屏上输出。</p></div>
+<div class="req"><p class="lab">要求</p><p>写两个函数：</p>
+<p><code>save_lines(in, filename)</code>：把 in 里的全部内容（读到 EOF 为止）原样写进文件 filename。</p>
+<p><code>show_upper(filename)</code>：打开文件，把内容读出来，小写变大写后输出到屏幕（printf 或 putchar）。</p>
+<p>用 fgetc/fputc 或 fgets/fputs 都可以。考试时 in 就是 stdin（键盘）。</p></div>
+<p class="refs">对应讲义　<a href="#s3">③</a> <a href="#s4">④</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>按字符复制；读出来时转大写再输出。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void save_lines(FILE *in, const char *filename)
+{
+    FILE *fp = fopen(filename, "w");
+    int ch;
+    if (fp == NULL) return;
+    while ((ch = fgetc(in)) != EOF) fputc(ch, fp);
+    fclose(fp);
+}
+
+void show_upper(const char *filename)
+{
+    FILE *fp = fopen(filename, "r");
+    int ch;
+    if (fp == NULL) return;
+    while ((ch = fgetc(fp)) != EOF) {
+        if (ch &gt;= 'a' &amp;&amp; ch &lt;= 'z') ch = ch - 32;
+        putchar(ch);
+    }
+    fclose(fp);
+}
+
+int main(void)
+{
+    save_lines(stdin, "text.txt");   /* 输入完按 Ctrl+Z（Windows）结束 */
+    show_upper("text.txt");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>I love C.
+File is easy.</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>I LOVE C.
+FILE IS EASY.</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 成绩写文件">
+<h3><span class="no">题3</span><span class="t">成绩写文件</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第10章习题5</p>
+<div class="stem"><p>有 5 个学生，每个学生有 3 门课程的成绩，从键盘输入学生数据（包括学号、姓名、3 门课程成绩），计算出平均成绩，将原有数据和计算出的平均分数存放在磁盘文件 stud 中。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>save_students(s, n, filename)</code>：先算出每个学生的 s[i].avg（三门平均），再把每个学生写成一行："学号 姓名 成绩1 成绩2 成绩3 平均\n"，成绩保留 1 位小数，平均保留 2 位，例如 "101 Li 80.0 90.0 70.0 80.00\n"。</p></div>
+<p class="refs">对应讲义　<a href="#s5">⑤</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>先算平均再写；格式按题目要求。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+struct Stud {
+    int num;
+    char name[20];
+    double score[3];
+    double avg;
+};
+
+void save_students(struct Stud s[], int n, const char *filename)
+{
+    FILE *fp = fopen(filename, "w");
+    int i;
+    if (fp == NULL) return;
+    for (i = 0; i &lt; n; i++) {
+        s[i].avg = (s[i].score[0] + s[i].score[1] + s[i].score[2]) / 3;
+        fprintf(fp, "%d %s %.1f %.1f %.1f %.2f\n", s[i].num, s[i].name,
+                s[i].score[0], s[i].score[1], s[i].score[2], s[i].avg);
+    }
+    fclose(fp);
+}
+
+#define N 5
+
+int main(void)
+{
+    struct Stud s[N];
+    int i;
+    for (i = 0; i &lt; N; i++)
+        scanf("%d%s%lf%lf%lf", &amp;s[i].num, s[i].name, &amp;s[i].score[0], &amp;s[i].score[1], &amp;s[i].score[2]);
+    save_students(s, N, "stud");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>101 Li 80 90 70
+102 Wang 85 75 95
+103 Zhang 90 92 94
+104 Liu 60 70 80
+105 Chen 88 66 77</pre></div>
+<div class="io"><p class="lab">运行后文件 stud 的内容</p><pre>101 Li 80.0 90.0 70.0 80.00
+102 Wang 85.0 75.0 95.0 85.00
+103 Zhang 90.0 92.0 94.0 92.00
+104 Liu 60.0 70.0 80.0 70.00
+105 Chen 88.0 66.0 77.0 77.00</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 两文件合并">
+<h3><span class="no">题4</span><span class="t">两文件合并</span></h3>
+<p class="pmeta"><span class="ptag">综合</span> · 教材第10章习题4</p>
+<div class="stem"><p>有两个磁盘文件 A 和 B，各存放一行字母，要求把这两个文件中的信息合并（按字母顺序排列），输出到一个新文件 C 中去。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>merge_files(fa, fb, fc)</code>：把文件 fa、fb 里的字母（换行符不要）都读进一个字符数组，从小到大排好，写进文件 fc，最后再写一个 '\n'。</p></div>
+<ul class="hints"><li><b>思路</b>读 → 排序（环06 的冒泡）→ 写。数组开 200 就够。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>读两个文件进同一个数组（跳过换行）→ 冒泡排序 → 写。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void merge_files(const char *fa, const char *fb, const char *fc)
+{
+    char c[200];
+    int n = 0, ch, i, j, t;
+    const char *names[2];
+    FILE *fp;
+    names[0] = fa;
+    names[1] = fb;
+    for (i = 0; i &lt; 2; i++) {
+        fp = fopen(names[i], "r");
+        if (fp == NULL) return;
+        while ((ch = fgetc(fp)) != EOF &amp;&amp; n &lt; 199)
+            if (ch != '\n') c[n++] = (char)ch;
+        fclose(fp);
+    }
+    for (i = 0; i &lt; n - 1; i++)
+        for (j = 0; j &lt; n - 1 - i; j++)
+            if (c[j] &gt; c[j + 1]) { t = c[j]; c[j] = c[j + 1]; c[j + 1] = (char)t; }
+    fp = fopen(fc, "w");
+    if (fp == NULL) return;
+    for (i = 0; i &lt; n; i++) fputc(c[i], fp);
+    fputc('\n', fp);
+    fclose(fp);
+}
+
+int main(void)
+{
+    merge_files("A", "B", "C");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">文件 A 原有内容</p><pre>dbfa</pre></div>
+<div class="io"><p class="lab">文件 B 原有内容</p><pre>ecg</pre></div>
+<div class="io"><p class="lab">运行后文件 C 的内容</p><pre>abcdefg</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t5" data-short="题5 文件排序">
+<h3><span class="no">题5</span><span class="t">文件排序</span></h3>
+<p class="pmeta"><span class="ptag">限时</span> · 教材第10章习题6 · 限时 20 分钟</p>
+<div class="stem"><p>将第 5 题 stud 文件中的学生数据，按平均分进行排序处理，将已排序的学生数据存入一个新文件 stu_sort 中。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>sort_file(in, out)</code>：in 文件是题3 的格式（每行 "学号 姓名 成绩1 成绩2 成绩3 平均"），读出所有学生（最多 50 个，用 fscanf 读到读不进来为止），按平均分从高到低排序，再用同样的格式写进 out 文件。</p></div>
+<p class="refs">对应讲义　<a href="#s5">⑤</a> <a href="r12.html#s4">环12 ④</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>fscanf 返回 6 才算读到一条；整条记录交换；同样格式写回。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+struct Stud {
+    int num;
+    char name[20];
+    double score[3];
+    double avg;
+};
+
+void sort_file(const char *in, const char *out)
+{
+    struct Stud s[50], t;
+    int n = 0, i, j;
+    FILE *fp = fopen(in, "r");
+    if (fp == NULL) return;
+    while (n &lt; 50 &amp;&amp; fscanf(fp, "%d %s %lf %lf %lf %lf", &amp;s[n].num, s[n].name,
+                            &amp;s[n].score[0], &amp;s[n].score[1], &amp;s[n].score[2], &amp;s[n].avg) == 6)
+        n++;
+    fclose(fp);
+    for (i = 0; i &lt; n - 1; i++)
+        for (j = 0; j &lt; n - 1 - i; j++)
+            if (s[j].avg &lt; s[j + 1].avg) { t = s[j]; s[j] = s[j + 1]; s[j + 1] = t; }
+    fp = fopen(out, "w");
+    if (fp == NULL) return;
+    for (i = 0; i &lt; n; i++)
+        fprintf(fp, "%d %s %.1f %.1f %.1f %.2f\n", s[i].num, s[i].name,
+                s[i].score[0], s[i].score[1], s[i].score[2], s[i].avg);
+    fclose(fp);
+}
+
+int main(void)
+{
+    sort_file("stud", "stu_sort");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">文件 stud 原有内容</p><pre>101 Li 80.0 90.0 70.0 80.00
+102 Wang 85.0 75.0 95.0 85.00
+103 Zhang 90.0 92.0 94.0 92.00
+104 Liu 60.0 70.0 80.0 70.00
+105 Chen 88.0 66.0 77.0 77.00</pre></div>
+<div class="io"><p class="lab">运行后文件 stu_sort 的内容</p><pre>103 Zhang 90.0 92.0 94.0 92.00
+102 Wang 85.0 75.0 95.0 85.00
+101 Li 80.0 90.0 70.0 80.00
+105 Chen 88.0 66.0 77.0 77.00
+104 Liu 60.0 70.0 80.0 70.00</pre></div>
+</div></div>
+</section>
+<section class="recall" id="recall">
+<h2>开始之前，先回想一下</h2>
+<p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
+<p class="q">小写字母 c 变大写 → <span class="a" tabindex="0"><code>c - 32</code> 或 <code>toupper(c)</code></span><span class="src">环02 细2</span></p>
+<p class="q"><code>while (ch = getchar() != '\n')</code> 错在哪 → <span class="a" tabindex="0">!= 先算，ch 拿到的是 0 或 1</span><span class="src">环04 细4</span></p>
+<p class="q"><code>scanf("%s", s);</code> 输入 <span class="out">a b</span>，s 得到 → <span class="a" tabindex="0">a（读到空格就停）</span><span class="src">环08 细4</span></p>
+<p class="q">读入一个 double 用的格式 → <span class="a" tabindex="0">%lf</span><span class="src">环01 细11</span></p>
+<p class="q">按分数给结构体数组排序，交换的是 → <span class="a" tabindex="0">整条记录</span><span class="src">环12 ④</span></p>
+</section>
+<div class="part" id="p1">
+<h2>编程题怎么写</h2>
+<p>文件读写函数和屏幕输入输出一一对应，只是多了一个 fp。</p>
+</div>
+<section class="sec" id="gu" data-short="骨架">
+<h3><span class="t">通用骨架</span></h3>
+<div class="code"><pre><code class="c">FILE *fp = fopen("文件名", "r");          // 打开
+if (fp == NULL) {                          // 判断
+    printf("打开失败\n");
+    return 1;
+}
+while ((ch = fgetc(fp)) != EOF) { … }      // 读写；ch 定义成 int
+fclose(fp);                                // 关闭</code></pre></div>
+</section>
+<section class="sec" id="s1" data-short="① 四步">
+<h3><span class="no">①</span><span class="t">打开 → 判断 → 读写 → 关闭</span></h3>
+<p>每一步都不能少：</p>
+<ul><li><b>不判 NULL</b>：文件打不开时（文件不存在、路径写错）fp 是 NULL，接着读写程序就崩溃。</li><li><b>不 fclose</b>：写的内容可能还在缓冲区里，没真正写进文件（细8）。</li></ul>
+</section>
+<section class="sec" id="s2" data-short="② 打开方式">
+<h3><span class="no">②</span><span class="t">打开方式：r、w、a</span></h3>
+<div class="calc">
+  <code>"r"</code><span class="arrow">→</span><span><span class="a" tabindex="0">只读</span> <span class="note">文件必须存在，不存在返回 NULL</span></span>
+  <code>"w"</code><span class="arrow">→</span><span><span class="a" tabindex="0">只写</span> <span class="note">不存在就新建；存在就先清空</span></span>
+  <code>"a"</code><span class="arrow">→</span><span><span class="a" tabindex="0">追加</span> <span class="note">写在原来内容的后面</span></span>
+  <code>"r+" / "w+" / "a+"</code><span class="arrow">→</span><span><span class="a" tabindex="0">读写都行</span> <span class="note">各自保留上面的特点（w+ 也会先清空）</span></span>
+  <code>"rb"、"wb"……</code><span class="arrow">→</span><span><span class="a" tabindex="0">二进制方式</span> <span class="note">不加 b 是文本方式</span></span>
+</div>
+<p><span class="trap">想在文件后面接着写却用了 "w"</span>，原来的内容就没了。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q"><code>fp = fopen(filename, "rb+");</code>（filename 里存的是 "paper"）=&gt; 以读写方式打开二进制文件 paper<span class="src">真选29·华南理工2018</span></p>
+<p class="q">填空考 fopen 的打开方式<span class="src">川师卷</span></p>
+</div>
+</section>
+<section class="sec" id="s3" data-short="③ fgetc 和 fputc">
+<h3><span class="no">③</span><span class="t">按字符读写：fgetc、fputc</span></h3>
+<p><code>fgetc(fp)</code> 读一个字符，读到文件尾返回 <b>EOF</b>（值是 −1）；<code>fputc(ch, fp)</code> 写一个字符。</p>
+<div class="code"><pre><code class="c">while ((ch = fgetc(fp)) != EOF) {     // 括号一个都不能少（回顾第 2 题）
+    fputc(toupper(ch), out);
+}</code></pre></div>
+<p><b>ch 要定义成 int</b>：EOF 是 −1，用 char 接，有的编译器上永远等不到 EOF（细6）。</p>
+<p>一个写了 <span class="out">hello file⏎second line⏎</span> 的文件，用这个循环数字符，一共 <span class="a" tabindex="0">23</span> 个（两个换行也算）。</p>
+</section>
+<section class="sec" id="s4" data-short="④ fgets 和 fputs">
+<h3><span class="no">④</span><span class="t">按行读写：fgets 会把回车也读进来</span></h3>
+<p><code>fgets(line, 大小, fp)</code> 读一行，<b>行末的 <code>'\n'</code> 也在 line 里</b>；读到文件尾返回 NULL。<code>fputs(s, fp)</code> 写一个字符串，不会自动加换行。</p>
+<div class="code"><pre><code class="c">while (fgets(line, sizeof line, fp) != NULL)
+    printf("[%s]", line);</code></pre></div>
+<p>上面那个文件读出来是 <span class="out">[hello file⏎]</span>：方括号里能看到回车也被读进来了。要去掉它，就把最后那个 <code>'\n'</code> 改成 <code>'\0'</code>（环08 ①）。</p>
+</section>
+<section class="sec" id="s5" data-short="⑤ fprintf 和 fscanf">
+<h3><span class="no">⑤</span><span class="t">按格式读写：fprintf、fscanf</span></h3>
+<p>和 printf、scanf 用法一样，只是第一个参数多一个 fp：</p>
+<div class="code"><pre><code class="c">fprintf(fp, "%d %s %.1f\n", s.num, s.name, s.score);
+
+while (fscanf(fp, "%d %s %lf", &amp;num, name, &amp;score) == 3)
+    …</code></pre></div>
+<p>fscanf 返回<b>成功读到几项</b>。这里要读 3 项，所以写 <code>== 3</code>；读到文件尾时返回的不是 3，循环就停了。</p>
+<p>题3、题5 都用这一对：fprintf 一行写一个学生，fscanf 一行读一个学生。</p>
+</section>
+<section class="sec" id="s6" data-short="⑥ fread 和 fwrite">
+<h3><span class="no">⑥</span><span class="t">按块读写：fread、fwrite</span></h3>
+<div class="code"><pre><code class="c">fwrite(地址, 每块多大, 写几块, fp);
+fread (地址, 每块多大, 读几块, fp);   // 返回成功读到的块数</code></pre></div>
+<p>把结构体数组原样存进文件、再原样读回来：<code>fwrite(stu, sizeof(struct Stud), 5, fp);</code>。要用二进制方式打开（"wb"、"rb"）。</p>
+<p>教材答案多用这一对写学生数据。这个仓库的题3 改用 fprintf 写文本，是为了测试能逐字检查。</p>
+</section>
+<section class="sec" id="s7" data-short="⑦ feof 的坑">
+<h3><span class="no">⑦</span><span class="t">while (!feof(fp)) 会多处理一次</span></h3>
+<p>feof 要等<b>读失败过一次</b>才变成真。所以：</p>
+<div class="code"><pre><code class="c">while (!feof(fp)) {
+    ch = fgetc(fp);
+    n++;
+}</code></pre></div>
+<p>文件里只有 <span class="out">ab</span> 两个字符，这个循环却跑了 <span class="a" tabindex="0">3</span> 次：最后一次 fgetc 读到的是 EOF，n 也加了。</p>
+<p>正确写法是「<b>先读，再判断</b>」：<code>while ((ch = fgetc(fp)) != EOF)</code>。</p>
+</section>
+<section class="sec" id="s8" data-short="⑧ fseek、rewind、ftell">
+<h3><span class="no">⑧</span><span class="t">文件位置：rewind、fseek、ftell</span></h3>
+<ul><li><code>rewind(fp)</code>：回到文件开头。</li><li><code>fseek(fp, 偏移, 起点)</code>：移动位置。起点 <code>SEEK_SET</code>（开头，0）、<code>SEEK_CUR</code>（当前，1）、<code>SEEK_END</code>（末尾，2）。</li><li><code>ftell(fp)</code>：当前位置离开头几个字节。</li></ul>
+<p><code>fseek(fp, 0, SEEK_END);</code> 之后 <code>ftell(fp)</code> 就是文件大小：<span class="out">ab</span> 这个文件是 <span class="a" tabindex="0">2</span> 字节。</p>
+</section>
+<div class="part" id="p2">
+<h2>文件的概念题</h2>
+<p>每一节最后附了真题的问法，灰色小字是出处。</p>
+</div>
+<section class="sec" id="d1" data-short="细1 FILE">
+<h3><span class="no">细1</span><span class="t">FILE 是一个结构体类型</span></h3>
+<p><code>FILE</code> 是 stdio.h 里定义的结构体类型，<b>大写</b>。程序里定义的是<b>指针</b> <code>FILE *fp;</code>。<span class="trap"><code>file *fp</code></span>、<span class="trap"><code>FILE fp</code></span> 都不对。</p>
+</section>
+<section class="sec" id="d2" data-short="细2 文本和二进制">
+<h3><span class="no">细2</span><span class="t">文本方式和二进制方式</span></h3>
+<p>文本方式在 Windows 上会转换换行（<code>'\n'</code> 和回车换行互转）；二进制方式原样读写。</p>
+<p>写给人看的（成绩单）用文本 + fprintf；写结构体、数组这种「内存原样」用二进制 + fwrite。</p>
+</section>
+<section class="sec" id="d3" data-short="细3 &quot;w&quot; 会清空">
+<h3><span class="no">细3</span><span class="t">"w" 会先清空文件</span></h3>
+<p>打开已有文件用 "w"，原来的内容立刻没了；想接在后面写用 "a"（②）。</p>
+</section>
+<section class="sec" id="d4" data-short="细4 feof 的返回值">
+<h3><span class="no">细4</span><span class="t">feof(fp) 的返回值</span></h3>
+<p>已经读到文件尾（读失败过）返回非 0；还没结束返回 <span class="a" tabindex="0">0</span>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">文件没有结束时 feof 的返回值 → <span class="a" tabindex="0">0</span><span class="src">真选28·华南理工2018</span></p>
+</div>
+</section>
+<section class="sec" id="d5" data-short="细5 文件名参数">
+<h3><span class="no">细5</span><span class="t">fopen 的第一个参数：文件名字符串</span></h3>
+<p>可以是常量 <code>"paper"</code>，也可以是存着文件名的字符数组：<code>char filename[] = "paper"; fopen(filename, "r")</code> 打开的是 paper，不是一个叫 filename 的文件。</p>
+<p>路径里的反斜杠要写两个：<code>"c:\\test\\out.dat"</code>（环02 细4 的转义）。</p>
+</section>
+<section class="sec" id="d6" data-short="细6 EOF 是 −1">
+<h3><span class="no">细6</span><span class="t">EOF 是 −1，所以 ch 是 int</span></h3>
+<p><code>EOF</code> 的值是 <span class="a" tabindex="0">-1</span>。用 <code>char ch</code> 接 fgetc 的返回值，有的编译器上 char 存不下 −1，永远等不到 EOF；有的遇到 0xFF 这个字节会提前停。所以 <b><code>int ch;</code></b>。</p>
+</section>
+<section class="sec" id="d7" data-short="细7 stdin 和 stdout">
+<h3><span class="no">细7</span><span class="t">stdin、stdout 也是 FILE *</span></h3>
+<p>键盘和屏幕也被当成文件：<code>fgetc(stdin)</code> 就是 <code>getchar()</code>，<code>fprintf(stdout, …)</code> 就是 <code>printf(…)</code>。</p>
+<p>所以「从键盘输入写进文件」的题，读键盘可以写成 <code>fgetc(stdin)</code>，和读文件是一样的代码。仓库里的题1、题2 就是把 in 当参数传进去，测试时 in 是一个文件，考试时就是 stdin。</p>
+</section>
+<section class="sec" id="d8" data-short="细8 要 fclose">
+<h3><span class="no">细8</span><span class="t">打开过的文件要 fclose</span></h3>
+<p>写文件时数据先放在缓冲区，攒够了才真正写进去。不 fclose，程序结束时最后那点数据可能还没写进文件。fclose 会把缓冲区的内容写完再关。</p>
+</section>
+    <div class="end">
+      <nav class="ringnav"><a href="r12.html"><small>← 上一环</small>环12 结构体与链表</a><a href="index.html"><small>目录</small>全部 13 环</a><span></span></nav>
+    </div>
+
+  </main>
+</div>
+<div class="fab" id="fab"><button type="button" class="m" id="fab-toc" aria-label="打开目录">目录</button><button type="button" id="fab-top" aria-label="回到顶部">↑</button></div>
+<div class="drawer" id="drawer"><div class="shade"></div><div class="panel"><nav class="toc" id="toc-d" aria-label="目录"></nav></div></div>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var ring = root.getAttribute("data-ring");             // 目录页没有
+  var secs = Array.prototype.slice.call(document.querySelectorAll(".recall, .sec"));
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function label(s) {
+    if (s.classList.contains("recall")) return "开始之前";
+    return s.dataset.short || "";
+  }
+
+  /* 图标：Lucide（github.com/lucide-icons/lucide，ISC 许可），24×24 线条图标，内联才能离线用 */
+  var IC = {
+    code: '<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>',
+    bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    left: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    term: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + "</svg>"; }
+
+  /* 给各种块加图标、给代码块加标题栏 */
+  var PART_IC = { p1: "code", p2: "bulb", rings: "layers", base: "repeat", cover: "book", how: "compass" };
+  var parts = document.querySelectorAll(".part");
+  parts.forEach(function (p, i) {
+    var sp = document.createElement("span");
+    sp.className = "pic"; sp.innerHTML = ic(PART_IC[p.id] || (i ? "bulb" : "code"));
+    p.insertBefore(sp, p.firstChild);
+  });
+  document.querySelectorAll(".exam > p:first-child").forEach(function (p) { p.innerHTML = ic("target") + p.innerHTML; });
+  document.querySelectorAll(".fix").forEach(function (f) {
+    var t = document.createElement("span"); t.className = "ft"; t.innerHTML = ic("alert") + "注意";
+    f.insertBefore(t, f.firstChild);
+  });
+  document.querySelectorAll(".recall h2").forEach(function (h) { h.innerHTML = ic("history") + h.innerHTML; });
+  document.querySelectorAll(".code").forEach(function (box) {
+    var hd = document.createElement("div"), isOut = !!box.querySelector("pre.o");
+    hd.className = "hd";
+    hd.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' + (isOut ? ic("term") + "输出" : ic("code") + (box.dataset.label || "C"));
+    box.insertBefore(hd, box.firstChild);
+  });
+  /* 第二部分（细节）的节，目录高亮用紫色 */
+  var inP2 = false;
+  document.querySelectorAll(".part, .sec").forEach(function (el) {
+    if (el.classList.contains("part")) { inP2 = el !== parts[0]; return; }
+    if (inP2) el.classList.add("p2");
+  });
+
+  /* 目录：大部分做小标题，每一节一行 */
+  function buildToc(nav, withHome) {
+    if (!nav) return;
+    var h = "";
+    if (withHome && ring) h += '<a class="home" href="' + root.getAttribute("data-home") + '">' + ic("left") + "全部 13 环</a>";
+    document.querySelectorAll(".recall, .part, .sec").forEach(function (s) {
+      if (s.classList.contains("part")) h += "<p>" + s.querySelector("h2").textContent + "</p>";
+      else if (label(s)) h += '<a href="#' + s.id + '" data-id="' + s.id + '"' + (s.classList.contains("p2") ? ' class="p2"' : "") + ">" + label(s) + "</a>";
+    });
+    nav.innerHTML = h;
+  }
+  buildToc(document.getElementById("toc"), true);
+  buildToc(document.getElementById("toc-m"), false);
+  buildToc(document.getElementById("toc-d"), true);
+  document.querySelectorAll("#toc-m a").forEach(function (a) {
+    a.addEventListener("click", function () { a.closest("details").open = false; });
+  });
+
+  /* 空：点一下揭开 */
+  function hidden() { return root.classList.contains("hide"); }
+  document.querySelectorAll(".a").forEach(function (a) {
+    function flip() { if (hidden()) { a.classList.toggle("on"); syncSec(a.closest(".sec, .recall")); } }
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "点开看答案");
+    a.addEventListener("click", flip);
+    a.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+  document.querySelectorAll(".oa").forEach(function (o) {
+    function flip() { if (hidden()) { o.classList.toggle("on"); syncSec(o.closest(".sec, .recall")); } }
+    o.addEventListener("click", function (e) { if (!e.target.closest(".copy")) flip(); });
+    o.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); flip(); } });
+  });
+
+  /* 每节一个「本节答案」：一次揭开这一节的全部空 */
+  function blanks(s) { return s ? s.querySelectorAll(".a, .oa") : []; }
+  function syncSec(s) {
+    if (!s || !s._btn) return;
+    var all = blanks(s), open = 0;
+    for (var i = 0; i < all.length; i++) if (all[i].classList.contains("on")) open++;
+    var allOpen = open === all.length;
+    s._btn.dataset.open = allOpen ? "1" : "";
+    s._btn.innerHTML = allOpen ? ic("eyeoff") + "盖上本节" : ic("eye") + "本节答案";
+    s._btn.hidden = !hidden();
+  }
+  secs.forEach(function (s) {
+    var head = s.querySelector("h3, h2");
+    if (!head || !blanks(s).length) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "secbtn";
+    b.addEventListener("click", function () {
+      var all = blanks(s), allOpen = b.dataset.open === "1";
+      for (var i = 0; i < all.length; i++) all[i].classList.toggle("on", !allOpen);
+      syncSec(s);
+    });
+    head.appendChild(b);
+    s._btn = b;
+    syncSec(s);
+  });
+
+  /* 全部揭开 / 盖上 */
+  /* 每道题的完整程序：点一下展开 / 收起 */
+  document.querySelectorAll(".prog-btn").forEach(function (b) {
+    b.innerHTML = ic("code") + "完整程序";
+    b.addEventListener("click", function () {
+      var on = b.parentNode.classList.toggle("on");
+      b.setAttribute("aria-expanded", on ? "true" : "false");
+      b.innerHTML = ic("code") + (on ? "收起程序" : "完整程序");
+    });
+  });
+  var btn = document.getElementById("toggle");
+  function toggleAll() {
+    if (!btn) return;
+    var h = root.classList.toggle("hide");
+    document.querySelectorAll(".a.on, .oa.on, .prog.on").forEach(function (a) { a.classList.remove("on"); });
+    document.querySelectorAll(".prog-btn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.innerHTML = ic("code") + "完整程序"; });
+    btn.innerHTML = h ? ic("eye") + "全部揭开" : ic("eyeoff") + "全部盖上";
+    btn.setAttribute("aria-pressed", h ? "false" : "true");
+    secs.forEach(syncSec);
+  }
+  if (btn) { btn.innerHTML = ic("eye") + "全部揭开"; btn.addEventListener("click", toggleAll); }
+
+  /* 当前读到哪一节：目录高亮，并记下来，下次打开可以接着读 */
+  var current = null;
+  function setCurrent(s) {
+    if (current === s) return;
+    current = s;
+    document.querySelectorAll(".toc a[data-id]").forEach(function (a) { a.classList.toggle("cur", a.dataset.id === s.id); });
+    if (ring) {
+      save("c-lesson-pos-" + ring, s.id);
+      save("c-lesson-last", { ring: ring, name: root.getAttribute("data-name"), sec: label(s) });
+    }
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target); });
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 上次读到哪：给一个「继续」 */
+  var resume = document.getElementById("resume");
+  if (resume && ring && !location.hash) {
+    var pos = load("c-lesson-pos-" + ring), target = pos && document.getElementById(pos);
+    if (target && secs.indexOf(target) > 1) {
+      resume.innerHTML = '<span>上次读到</span><a href="#' + pos + '">' + label(target) + ' →</a><button type="button">不用了</button>';
+      resume.classList.add("on");
+      resume.querySelector("a").addEventListener("click", function () { resume.classList.remove("on"); });
+      resume.querySelector("button").addEventListener("click", function () { resume.classList.remove("on"); });
+    }
+  }
+  /* 目录页：标出上次看的那一环 */
+  if (!ring) {
+    var last = load("c-lesson-last");
+    if (last && last.ring) {
+      var li = document.querySelector('.rings li[data-ring="' + last.ring + '"]');
+      if (li) {
+        li.classList.add("last");
+        if (last.sec) {
+          var p = document.createElement("p");
+          p.textContent = "上次读到：" + last.sec;
+          p.style.color = "var(--green)";
+          li.appendChild(p);
+        }
+      }
+    }
+  }
+
+  /* 阅读进度条、浮动按钮 */
+  var bar = document.getElementById("progress"), fab = document.getElementById("fab"), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + "%";
+    if (fab) fab.classList.toggle("on", window.scrollY > 500);
+    ticking = false;
+  }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+  var drawer = document.getElementById("drawer");
+  function closeDrawer() { if (drawer) drawer.classList.remove("on"); }
+  var top = document.getElementById("fab-top");
+  if (top) top.innerHTML = ic("up");
+  if (document.getElementById("fab-toc")) document.getElementById("fab-toc").innerHTML = ic("list");
+  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+  var ft = document.getElementById("fab-toc");
+  if (ft) ft.addEventListener("click", function () {
+    drawer.classList.add("on");
+    var cur = drawer.querySelector("a.cur");
+    if (cur) cur.scrollIntoView({ block: "center" });
+  });
+  if (drawer) {
+    drawer.querySelector(".shade").addEventListener("click", closeDrawer);
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeDrawer); });
+  }
+
+  /* 键盘：J 下一节，K 上一节，A 全部揭开 / 盖上，Esc 关目录 */
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "Escape") { closeDrawer(); return; }
+    var k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && secs.length) {
+      var i = current ? secs.indexOf(current) : -1;
+      var n = secs[Math.max(0, Math.min(secs.length - 1, i + (k === "j" ? 1 : -1)))];
+      if (n) { n.scrollIntoView({ behavior: "instant", block: "start" }); setCurrent(n); }
+    } else if (k === "a" && btn) {
+      toggleAll();
+    }
+  });
+
+  /* C 代码着色 */
+  var KW = /^(int|double|float|char|long|short|unsigned|signed|void|return|for|while|do|if|else|switch|case|break|continue|sizeof|struct|union|enum|typedef|static|extern|register|auto|const|default|goto|FILE|NULL|EOF)$/;
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(src) {
+    var out = "", re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|(\b\d+(?:\.\d*)?(?:[eE][-+]?\d+)?[fFlL]?\b)|([A-Za-z_]\w*)/gm, m, last = 0;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) out += '<span class="t-com">' + esc(t) + "</span>";
+      else if (m[2]) out += '<span class="t-str">' + esc(t) + "</span>";
+      else if (m[3]) out += '<span class="t-pre">' + esc(t) + "</span>";
+      else if (m[4]) out += '<span class="t-num">' + esc(t) + "</span>";
+      else if (KW.test(t)) out += '<span class="t-kw">' + t + "</span>";
+      else out += esc(t);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll("pre code.c").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  /* 复制：方便贴进 草稿.c 自己跑 */
+  document.querySelectorAll(".code").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.innerHTML = ic("copy") + "复制";
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      function done(msg) { b.innerHTML = ic("check") + msg; setTimeout(function () { b.innerHTML = ic("copy") + "复制"; }, 1400); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        done("已选中，按 Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(pre.textContent).then(function () { done("已复制"); }, fallback); }
+      catch (err) { fallback(); }
+    });
+    (box.querySelector(".hd") || box).appendChild(b);
+  });
+})();
+</script>

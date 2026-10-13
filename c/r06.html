@@ -1,0 +1,1057 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
+<title>环06 排序查找讲义</title>
+<meta name="description" content="C 语言环06：冒泡、选择排序、二分查找、有序插入、合并、分组，以及一维数组的定义、初始化、越界、数组名、sizeof、数组作参数等考点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版式：布面唱片封面。七种中明度布色轮换（石板蓝、赭黄、鼠尾草、灰粉、青绿、薰衣草、暖灰），
+   每一环的页头是一块圆角布面，正文是一张安静的纸。字距拉开的人文无衬线，留白多，字像压印在布上。 */
+:root {
+  /* 纸和墨 */
+  --desk: #d9d4ca;  --paper: #f5f2eb;  --tint: #ece7dd;
+  --text: #2e302b;  --sub: #6b6960;  --faint: #8f8b80;  --rule: #ddd6c8;
+  --code-bg: #ebe6dc;
+  --r: 16px;  --r-s: 10px;   /* 圆角 */
+  --pen: #b5482a;           /* 答案：红笔 */
+  --tok-kw: #3d5462;  --tok-str: #a8502c;  --tok-num: #8f6510;  --tok-com: #8f8a7c;  --tok-pre: #7d5a3c;
+  /* Atkinson Hyperlegible：0 带斜线、1 l I 分得开，数字是等高的 */
+  --f-latin: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+           repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+    --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+    --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+  --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+  --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+  color-scheme: dark;
+}
+/* 七块布：布色 / 布上标题 / 布上正文 / 纸上强调色（浅、深两种模式） */
+:root, [data-tone="a"] { --cloth: #56707f; --ink: #f4b788; --soft: #f1f1ec; --acc-l: #a5592c; --acc-d: #e8a06c; }
+[data-tone="b"] { --cloth: #cda85a; --ink: #8e361b; --soft: #3a2712; --acc-l: #a34622; --acc-d: #e8895f; }
+[data-tone="c"] { --cloth: #97a68a; --ink: #36294a; --soft: #232a1f; --acc-l: #55703f; --acc-d: #b3c79f; }
+[data-tone="d"] { --cloth: #cfa194; --ink: #5a2632; --soft: #3a1f24; --acc-l: #a24a4f; --acc-d: #ec9aa0; }
+[data-tone="e"] { --cloth: #477774; --ink: #f5d89e; --soft: #f1f3ee; --acc-l: #2c706c; --acc-d: #8cc7c0; }
+[data-tone="f"] { --cloth: #a7a1c0; --ink: #2c2752; --soft: #221f38; --acc-l: #5c5397; --acc-d: #b7afe0; }
+[data-tone="g"] { --cloth: #6e6c63; --ink: #f2c565; --soft: #f5f0e4; --acc-l: #8a610c; --acc-d: #e2a129; }
+:root, [data-tone] { --acc: var(--acc-l); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]), :root:not([data-theme="light"]) [data-tone] { --acc: var(--acc-d); } }
+:root[data-theme="dark"], :root[data-theme="dark"] [data-tone] { --acc: var(--acc-d); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; color: var(--text); font: 17px/1.9 var(--f-body); -webkit-text-size-adjust: 100%; font-variant-numeric: lining-nums;
+  background: var(--desk); background-image: var(--linen); }
+a { color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+b, strong { font-weight: 700; }
+code, pre { font-family: var(--f-code); font-size: .84em; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+:not(pre) > code { background: var(--tint); padding: .08em .4em; border-radius: 5px; white-space: pre-wrap;
+  display: inline-block; max-width: 100%; line-height: 1.55; vertical-align: baseline; }
+::selection { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+:focus-visible { outline: 1.5px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+.ic { width: 1em; height: 1em; flex: none; vertical-align: -.12em; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+#progress { position: fixed; left: 0; top: env(safe-area-inset-top, 0px); height: 2px; width: 0; z-index: 30;
+  background: var(--acc); transition: width .1s linear; }
+
+/* 布局：左边一列目录，右边一张纸 */
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 28px; padding-block: 40px 110px;
+  display: grid; grid-template-columns: 190px minmax(0, 790px); justify-content: center; gap: 48px; }
+main { min-width: 0; max-width: 790px; background: var(--paper); padding: 0 72px 64px; border-radius: var(--r); overflow: clip;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -24px rgba(0,0,0,.35); }
+
+/* 目录 */
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start;
+  max-height: calc(100vh - 56px); overflow-y: auto; padding-block: 4px 24px; font-size: 14px; line-height: 1.55; scrollbar-width: thin; }
+.toc .home { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--sub); text-decoration: none;
+  font: 15px/1 var(--f-latin); letter-spacing: .12em; }
+.toc .home:hover { color: var(--acc); }
+.toc p { margin: 22px 0 6px; color: var(--faint); font-size: 12px; letter-spacing: .16em; }
+.toc > p:first-child, .toc .home + p { margin-top: 0; }
+.toc a { display: block; padding: 3px 0 3px 12px; border-left: 1.5px solid transparent; color: var(--sub); text-decoration: none; transition: color .2s, border-color .2s; }
+.toc a:hover { color: var(--text); }
+.toc a.cur { color: var(--acc); border-left-color: var(--acc); }
+.toc-m { display: none; }
+
+/* 页头：一张布面封面 */
+header { margin: 0 -72px; padding: 76px 72px 52px; color: var(--ink);
+  background: var(--cloth); background-image: var(--linen); position: relative; }
+.kicker { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  font: 500 15px/1.4 var(--f-latin); letter-spacing: .16em; opacity: .9; }
+.kicker a { color: inherit; text-decoration: none; }
+.kicker a:hover { text-decoration: underline; }
+.chip { font: inherit; letter-spacing: .2em; }
+h1 { font-weight: 400; font-size: clamp(30px, 5vw, 42px); line-height: 1.35; margin: 64px 0 22px; letter-spacing: .14em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 -1px 0 rgba(255,255,255,.06); text-wrap: balance; }
+.intro p { margin: 0 0 8px; color: var(--soft); font-size: 15.5px; line-height: 1.85; max-width: 38em; opacity: .92; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 28px; font-size: 14px;
+  color: var(--soft); }
+header :not(pre) > code { background: color-mix(in srgb, var(--soft) 16%, transparent); color: var(--soft); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-body); letter-spacing: .08em; color: var(--ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; padding: 10px 20px; cursor: pointer;
+  transition: background .2s; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--cloth); }
+.resume { display: none; margin-top: 20px; padding: 12px 0 0; font-size: 14.5px; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+.resume.on { display: flex; }
+.resume a { color: var(--ink); font-weight: 600; }
+.resume button { margin-left: auto; font: inherit; font-size: 13px; color: inherit; background: none; border: 0; cursor: pointer; opacity: .8; }
+
+/* 两大部分 */
+.part { margin-top: 84px; }
+.part .pic { display: none; }
+.part h2 { font-weight: 400; font-size: 25px; line-height: 1.4; margin: 0; letter-spacing: .14em; color: var(--acc); }
+.part h2::before { content: ""; display: block; width: 28px; height: 1.5px; background: var(--acc); margin-bottom: 18px; }
+.part > p { margin: 8px 0 0; color: var(--sub); font-size: 15.5px; }
+
+/* 每一节 */
+.sec { padding-top: 56px; scroll-margin-top: 20px; }
+.part + .sec { padding-top: 26px; }
+.sec h3 { font-weight: 500; font-size: 20px; line-height: 1.5; margin: 0 0 14px; letter-spacing: .04em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 14px; }
+.sec h3 .no { flex: none; font: 500 16px/1 var(--f-latin); color: var(--acc); letter-spacing: .08em; min-width: 1.4em; }
+.sec h3 .t { flex: 1; min-width: 0; }
+.secbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 13px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 4px 0; cursor: pointer; transition: color .2s, border-color .2s; white-space: nowrap; }
+.secbtn:hover { color: var(--acc); border-bottom-color: var(--acc); }
+.secbtn[hidden] { display: none; }
+.sec p { margin: 14px 0; }
+.sec ul { margin: 14px 0; padding-left: 1.2em; }
+.sec li { margin: 8px 0; }
+.sec li::marker { color: var(--acc); }
+.mute { color: var(--sub); }
+.small { font-size: 14.5px; }
+mark { background: color-mix(in srgb, var(--ink) 25%, transparent); color: inherit; padding: 0 .15em; }
+
+/* 空：一段虚线，点开后红笔写上 */
+.a { color: var(--pen); font-weight: 600; }
+.hide .a:not(.on) { color: transparent !important; cursor: pointer; user-select: none; border-radius: 4px 4px 0 0;
+  display: inline-block; width: 3.4em; height: 1.3em; overflow: hidden; white-space: nowrap; vertical-align: -0.24em;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--acc) 70%, transparent); transition: background .2s; }
+.hide .a:not(.on):hover { background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.hide .a:not(.on) * { visibility: hidden; }
+.a.on, .wrap:not(.hide) .a { animation: ink .4s ease-out; }
+.a code { color: inherit; background: transparent; padding: 0; }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+
+.trap { text-decoration: underline wavy var(--pen); text-decoration-thickness: 1.2px; text-underline-offset: 4px; }
+
+/* 代码 */
+.code { position: relative; margin: 20px 0; background: var(--code-bg); border-radius: var(--r-s); }
+.code .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0 20px; font: 12px/1 var(--f-latin); letter-spacing: .2em; color: var(--faint); }
+.code .hd > .ic, .code .dots { display: none; }
+.code pre { margin: 0; padding: 8px 20px 16px; overflow-x: auto; line-height: 1.75; font-size: 14px; }
+.copy { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-transform: none; }
+.copy:hover { color: var(--acc); }
+.t-kw { color: var(--tok-kw); font-weight: 600; }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-com { color: var(--tok-com); font-style: italic; }
+.t-pre { color: var(--tok-pre); }
+pre.o { font-family: var(--f-code); color: var(--sub); }
+
+.hide .oa:not(.on) { cursor: pointer; }
+.hide .oa:not(.on) pre { color: transparent; user-select: none; background-image: var(--linen); }
+.hide .oa:not(.on)::after { content: "先在纸上画出来，再点一下看输出"; position: absolute; left: 20px; top: 42px;
+  font: 14px/1.4 var(--f-body); color: var(--sub); letter-spacing: .04em; }
+.hide .oa:not(.on) .copy { visibility: hidden; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.pair .code { margin: 0; }
+.pair .lab { font-size: 13px; color: var(--acc); letter-spacing: .1em; margin-bottom: 6px; }
+
+/* 写法 → 结果 */
+.calc { display: grid; grid-template-columns: fit-content(55%) max-content minmax(0, 1fr); gap: 0 18px;
+  margin: 18px 0; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.calc > * { padding: 8px 0; }
+.calc > code:not(.a) { justify-self: start; white-space: pre-wrap; margin: 6px 0; padding: .15em .5em; }
+.calc > :nth-child(3n+1) { min-width: 0; }
+.calc .arrow { color: var(--faint); font-size: 14px; }
+.calc .note { color: var(--sub); font-size: 14.5px; }
+
+.tbl { overflow-x: auto; margin: 18px 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 50%; }
+th, td { padding: 8px 22px 8px 0; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--faint); font-size: 12.5px; letter-spacing: .14em; }
+td code { white-space: nowrap; }
+
+/* 真题、注意 */
+.exam, .fix { margin: 24px 0 0; padding: 14px 20px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--acc) 7%, transparent); }
+.exam > p:first-child, .fix .ft { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12.5px; letter-spacing: .2em; color: var(--acc); }
+.q { margin: 9px 0; }
+.src { font: 13px/1 var(--f-latin); color: var(--faint); margin-left: 12px; white-space: nowrap; letter-spacing: .06em; }
+.fix { background: color-mix(in srgb, var(--pen) 7%, transparent); font-size: 15.5px; }
+.fix .ft { color: var(--pen); }
+
+.out { font-family: var(--f-code); font-size: .84em; white-space: pre; background: var(--code-bg); padding: .08em .4em; border-radius: 5px; }
+
+/* 回顾：一小块浅色布 */
+.recall { margin: 0 -72px; padding: 30px 72px 26px; scroll-margin-top: 20px; background: var(--tint); }
+.recall h2 { font-weight: 500; font-size: 15px; letter-spacing: .2em; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--acc); }
+.recall h2 .secbtn { margin-left: auto; }
+.recall > p { margin: 0 0 10px; color: var(--sub); font-size: 14.5px; }
+.recall .q { margin: 8px 0; }
+.recall :not(pre) > code { background: var(--paper); }
+
+/* 结尾 */
+.end { margin-top: 84px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.end h2 { font-weight: 400; font-size: 22px; letter-spacing: .14em; color: var(--acc); margin: 0 0 8px; }
+.ringnav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; font-size: 15px; }
+.ringnav a, .ringnav span { flex: 1 1 0; min-width: 0; }
+.ringnav a { text-decoration: none; padding: 14px 18px; color: var(--text); border: 1px solid var(--rule); border-radius: var(--r-s); transition: border-color .2s, background .2s; }
+.ringnav a:hover { background: color-mix(in srgb, var(--acc) 6%, transparent); }
+.ringnav a:hover { border-color: var(--acc); }
+.ringnav a small { display: block; font: 12.5px/1.4 var(--f-latin); letter-spacing: .16em; color: var(--faint); }
+.ringnav a:nth-child(2) { text-align: center; }
+.ringnav a:last-child { text-align: right; }
+.keys { margin-top: 20px; font-size: 13px; color: var(--faint); letter-spacing: .04em; }
+.keys kbd { font: 12px/1 var(--f-code); border: 1px solid var(--rule); border-radius: 5px; padding: 2px 6px; color: var(--sub); }
+details.legend { margin-top: 26px; font-size: 14px; color: var(--sub); }
+details.legend summary { cursor: pointer; }
+details.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; margin: 10px 0 0; }
+details.legend dt { font: 13px/1.8 var(--f-latin); letter-spacing: .06em; }
+details.legend dd { margin: 0; }
+
+/* 目录页：13 张小卡，每张左边一块圆角布面色签 */
+.rings { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rings li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: center;
+  padding: 10px 14px 10px 10px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.rings li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cloth) 70%, transparent);
+  box-shadow: 0 10px 22px -16px rgba(0,0,0,.5); }
+.rings .rn { grid-row: 1 / span 3; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--cloth); background-image: var(--linen); color: var(--ink); font: 500 17px/1 var(--f-latin); letter-spacing: .08em; }
+.rings a { font-weight: 500; font-size: 16px; line-height: 1.45; letter-spacing: .06em; color: var(--text); text-decoration: none; }
+.rings a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.rings p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rings li.last { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 6%, var(--paper)); }
+.rings li.last a::before { content: "上次 · "; color: var(--acc); font-size: 13px; letter-spacing: .1em; }
+.rings li.last p:last-child { color: var(--acc) !important; }
+
+/* 浮动按钮 */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fab.on { opacity: 1; pointer-events: auto; }
+.fab button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cloth); background-image: var(--linen); color: var(--ink);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.6); cursor: pointer; display: grid; place-items: center; }
+.fab .m { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 40; display: none; }
+.drawer.on { display: block; }
+.drawer .shade { position: absolute; inset: 0; background: rgba(20, 20, 18, .45); }
+.drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(80vw, 310px); background: var(--paper); border-radius: var(--r) 0 0 var(--r);
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 24px 28px; overflow-y: auto; }
+.drawer .toc { display: block; position: static; max-height: none; padding: 0; font-size: 15px; }
+
+/* 窄于 1100（分屏、平板）：目录收进抽屉，纸张居中 */
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 790px); gap: 0; padding-inline: 24px; }
+  .wrap > .toc { display: none; }
+  .toc-m { display: block; margin-top: 22px; font-size: 15px; color: var(--ink); }
+  .toc-m summary { cursor: pointer; letter-spacing: .1em; }
+  .toc-m .toc { display: block; position: static; max-height: none; padding: 10px 0 0; columns: 2; column-gap: 24px; }
+  .toc-m .toc a { color: inherit; opacity: .85; border-left: 0; padding-left: 0; }
+  .toc-m .toc p { break-after: avoid; color: inherit; opacity: .6; }
+  .fab .m { display: grid; }
+  .keys { display: none; }
+}
+/* 手机：纸张铺满 */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 0; padding-block: 0 80px; }
+  main { padding: 0 20px 48px; box-shadow: none; border-radius: 0; }
+  header { margin: 0 -20px; padding: 48px 20px 36px; border-radius: 0 0 22px 22px; }
+  h1 { margin-top: 40px; }
+  .recall { margin: 0 -20px; padding: 24px 20px 20px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; line-height: 1.9; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .calc { grid-template-columns: minmax(0, 1fr); }
+  .calc > * { padding: 3px 0; }
+  .calc .arrow { display: none; }
+  .calc > :nth-child(3n) { padding-left: 1em; padding-bottom: 10px; }
+  .src { display: block; margin: 4px 0 0; }
+  .sec h3 { flex-wrap: wrap; }
+  .secbtn { margin-left: auto; }
+  .rings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  pre.fig { font-size: 13px; }
+  .stem { padding: 12px 14px; }
+  .ringnav a:nth-child(2) { order: 3; flex-basis: 100%; }
+}
+
+/* 5 道真题 */
+.prob { padding-top: 48px; }
+.prob h3 .no { font-weight: 700; }
+.pmeta { margin: -6px 0 12px !important; font-size: 13.5px; color: var(--faint); letter-spacing: .04em; }
+.ptag { display: inline-block; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+  color: var(--acc); background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.stem { padding: 14px 18px; border-radius: var(--r-s); background: var(--tint); }
+.stem p, .req p { margin: 6px 0 !important; }
+pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space: pre; overflow-x: auto; background: none; }
+.req { margin-top: 14px; }
+.req .lab, .io .lab { margin: 0 0 2px !important; font-size: 12.5px; letter-spacing: .16em; color: var(--faint); }
+.hints { list-style: none; padding: 0 !important; margin: 12px 0 0 !important; font-size: 15.5px; }
+.hints li { margin: 4px 0 !important; }
+.hints b { font-weight: 600; color: var(--acc); margin-right: .6em; }
+.hints b::after { content: "："; display: none; }
+.refs { margin: 10px 0 0 !important; font-size: 14px; color: var(--faint); }
+.refs a { margin-right: 6px; text-decoration: none; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.prog { margin-top: 16px; }
+.prog-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: transparent;
+  color: var(--acc); border-radius: 999px; padding: 6px 16px; font: 500 14px/1.2 var(--f-body); letter-spacing: .06em; cursor: pointer; }
+.prog-btn:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.hide .prog:not(.on) .prog-body { display: none; }
+.wrap:not(.hide) .prog-btn { display: none; }
+.prog-body { margin-top: 12px; }
+.prog-body .code { margin: 10px 0; }
+.tip { margin: 0 !important; padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; background: color-mix(in srgb, var(--pen) 7%, transparent); }
+.tip b { color: var(--pen); font-weight: 600; margin-right: .7em; }
+.io { margin: 10px 0 0; }
+.io pre { margin: 0; padding: 10px 16px; border-radius: var(--r-s); background: var(--code-bg); font: 14px/1.65 var(--f-code); overflow-x: auto; color: var(--sub); }
+</style>
+
+<div id="progress" aria-hidden="true"></div>
+<div class="wrap hide" id="root" data-ring="06" data-name="排序查找" data-home="index.html" data-tone="f">
+  <nav class="toc" id="toc" aria-label="目录"></nav>
+  <main>
+    <header>
+      <p class="kicker"><a href="index.html">C 语言讲义</a><span class="chip">环 06</span></p>
+      <h1>排序·查找·插入·合并</h1>
+      <div class="intro">
+        <p>这一环开始用数组。前半份讲数组上的四个基本操作：排序、查找、插入、合并。后半份讲一维数组本身的规矩：怎么定义、怎么初始化、下标的范围、数组名是什么。</p>
+      </div>
+      <div class="tools">
+        <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
+      </div>
+      <div class="resume" id="resume"></div>
+      <details class="toc-m"><summary>目录</summary><nav class="toc" id="toc-m" aria-label="目录"></nav></details>
+    </header>
+<div class="part" id="zt">
+<h2>5 道真题</h2>
+<p>先自己写，写完再打开完整程序对照。每个程序都编译运行过，下面的运行结果就是它的真实输出。</p>
+</div>
+<section class="sec prob" id="t1" data-short="题1 非递减排序">
+<h3><span class="no">题1</span><span class="t">非递减排序</span></h3>
+<p class="pmeta"><span class="ptag">代表题</span> · 2022 第4题</p>
+<div class="stem"><p>将无序数据调整为非递减数列（即后一个元素不小于前一个元素）。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>sort_asc(a, n)</code> 把 a[0]~a[n-1] 排成从小到大（相等的可以挨着）。</p></div>
+<ul class="hints"><li><b>思路</b>冒泡或选择排序都行。外层几趟？内层上界是多少？</li></ul>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s2">②</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>内层上界 n-1-i；相等时不交换。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void sort_asc(int a[], int n)
+{
+    int i, j, t;
+    for (i = 0; i &lt; n - 1; i++)
+        for (j = 0; j &lt; n - 1 - i; j++)
+            if (a[j] &gt; a[j + 1]) { t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; }
+}
+
+#define N 10
+
+int main(void)
+{
+    int a[N], i;
+    for (i = 0; i &lt; N; i++) scanf("%d", &amp;a[i]);
+    sort_asc(a, N);
+    for (i = 0; i &lt; N; i++) printf("%d ", a[i]);
+    printf("\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>5 1 4 2 3 9 7 6 8 0</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>0 1 2 3 4 5 6 7 8 9 </pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t2" data-short="题2 有序查找">
+<h3><span class="no">题2</span><span class="t">有序查找</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 2019 第4题（25 分）</p>
+<div class="stem"><p>已知一个整数有序序列，请设计程序实现以下功能：对任意输入的整数 x，查找 x 是否在该序列中，如果查找成功，则输出 x 在序列中的位置，否则输出「查找失败」的提示。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>search(a, n, x)</code>：a 从小到大有序，找到返回下标（从 0 开始），找不到返回 -1。</p>
+<p>考试输出「位置」时一般说第几个（下标 + 1），这里统一返回下标。</p></div>
+<ul class="hints"><li><b>思路</b>二分查找。left、right、mid 三个变量；循环条件 left &lt;= right。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>条件 left &lt;= right；移动时是 mid+1 / mid-1。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int search(int a[], int n, int x)
+{
+    int left = 0, right = n - 1, mid;
+    while (left &lt;= right) {
+        mid = (left + right) / 2;
+        if (a[mid] == x) return mid;
+        else if (a[mid] &lt; x) left = mid + 1;
+        else right = mid - 1;
+    }
+    return -1;
+}
+
+int main(void)
+{
+    int a[10] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};
+    int x, pos;
+    scanf("%d", &amp;x);
+    pos = search(a, 10, x);
+    if (pos &gt;= 0) printf("%d 是第 %d 个数\n", x, pos + 1);
+    else printf("查找失败\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>11</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>11 是第 6 个数</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 有序插入">
+<h3><span class="no">题3</span><span class="t">有序插入</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第6章习题4</p>
+<div class="stem"><p>有一个已排好序的数组，要求输入一个数后，按原来排序的规律将它插入数组中。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>insert_sorted(a, n, x)</code>：a[0]~a[n-1] 从小到大有序（数组后面还有空位），把 x 插进去仍然有序，返回插入后的个数 n+1。</p></div>
+<ul class="hints"><li><b>思路</b>先找到第一个不小于 x 的位置 pos；从最后一个开始往右搬到 pos；a[pos] = x。</li></ul>
+<p class="refs">对应讲义　<a href="#s5">⑤</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>pos 找第一个不小于 x 的；从右往左搬。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int insert_sorted(int a[], int n, int x)
+{
+    int pos = 0, i;
+    while (pos &lt; n &amp;&amp; a[pos] &lt; x) pos++;
+    for (i = n; i &gt; pos; i--) a[i] = a[i - 1];
+    a[pos] = x;
+    return n + 1;
+}
+
+int main(void)
+{
+    int a[11] = {1, 3, 5, 7, 9, 11, 13, 15, 17, 19};    /* 10 个数，多留 1 个空位 */
+    int n = 10, x, i;
+    scanf("%d", &amp;x);
+    n = insert_sorted(a, n, x);
+    for (i = 0; i &lt; n; i++) printf("%d ", a[i]);
+    printf("\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>8</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>1 3 5 7 8 9 11 13 15 17 19 </pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 奇降偶升">
+<h3><span class="no">题4</span><span class="t">奇降偶升</span></h3>
+<p class="pmeta"><span class="ptag">综合</span> · 2015 第2题（15 分）</p>
+<div class="stem"><p>输入若干个自然数，对奇数从大到小排序，对偶数从小到大排序，分别输出奇数排序结果和偶数排序结果。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>odd_even(a, n)</code> 打印两行：</p>
+<p>第 1 行：奇数从大到小，数之间一个空格；第 2 行：偶数从小到大，数之间一个空格。没有奇数（或偶数）时那一行是空行。</p>
+<p>例如 a = {5, 8, 3, 6, 1}：打印 "5 3 1\n6 8\n"</p></div>
+<ul class="hints"><li><b>思路</b>先分到两个数组（各有自己的计数器），再分别排序，最后输出。</li></ul>
+<p class="refs">对应讲义　<a href="#s7">⑦</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>两组各自计数；奇数降序、偶数升序比较方向不同；空格只在两个数之间。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void odd_even(int a[], int n)
+{
+    int odd[100], even[100], no = 0, ne = 0, i, j, t;
+    for (i = 0; i &lt; n; i++) {
+        if (a[i] % 2 != 0) odd[no++] = a[i];
+        else even[ne++] = a[i];
+    }
+    for (i = 0; i &lt; no - 1; i++)
+        for (j = 0; j &lt; no - 1 - i; j++)
+            if (odd[j] &lt; odd[j + 1]) { t = odd[j]; odd[j] = odd[j + 1]; odd[j + 1] = t; }
+    for (i = 0; i &lt; ne - 1; i++)
+        for (j = 0; j &lt; ne - 1 - i; j++)
+            if (even[j] &gt; even[j + 1]) { t = even[j]; even[j] = even[j + 1]; even[j + 1] = t; }
+    for (i = 0; i &lt; no; i++) printf(i ? " %d" : "%d", odd[i]);
+    printf("\n");
+    for (i = 0; i &lt; ne; i++) printf(i ? " %d" : "%d", even[i]);
+    printf("\n");
+}
+
+int main(void)
+{
+    int a[100], n, i;
+    scanf("%d", &amp;n);                 /* 先输入个数 */
+    for (i = 0; i &lt; n; i++) scanf("%d", &amp;a[i]);
+    odd_even(a, n);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>8
+5 8 3 6 1 10 7 2</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>7 5 3 1
+2 6 8 10</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t5" data-short="题5 排序后合并">
+<h3><span class="no">题5</span><span class="t">排序后合并</span></h3>
+<p class="pmeta"><span class="ptag">限时</span> · 2015 第5题（20 分） · 限时 15 分钟</p>
+<div class="stem"><p>编写一个程序，输入两个包含 5 个数值的数组，先将两个数组升序排列，然后将这两个数组合并成一个升序数组。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>merge_sorted(a, na, b, nb, c)</code>：先把 a、b 各自排成升序，再合并成升序放进 c（c 共 na+nb 个）。</p></div>
+<ul class="hints"><li><b>思路</b>排序可以照抄题1 的写法（写两遍或者自己写个小函数）；合并用两个游标，最后记得收尾。</li></ul>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s6">⑥</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>先各自排序；合并后两个 while 收尾。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+static void bubble(int a[], int n)
+{
+    int i, j, t;
+    for (i = 0; i &lt; n - 1; i++)
+        for (j = 0; j &lt; n - 1 - i; j++)
+            if (a[j] &gt; a[j + 1]) { t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; }
+}
+
+void merge_sorted(int a[], int na, int b[], int nb, int c[])
+{
+    int i = 0, j = 0, k = 0;
+    bubble(a, na);
+    bubble(b, nb);
+    while (i &lt; na &amp;&amp; j &lt; nb) {
+        if (a[i] &lt;= b[j]) c[k++] = a[i++];
+        else c[k++] = b[j++];
+    }
+    while (i &lt; na) c[k++] = a[i++];
+    while (j &lt; nb) c[k++] = b[j++];
+}
+
+int main(void)
+{
+    int a[5], b[5], c[10], i;
+    for (i = 0; i &lt; 5; i++) scanf("%d", &amp;a[i]);
+    for (i = 0; i &lt; 5; i++) scanf("%d", &amp;b[i]);
+    merge_sorted(a, 5, b, 5, c);
+    for (i = 0; i &lt; 10; i++) printf("%d ", c[i]);
+    printf("\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>9 1 7 3 5
+8 2 6 4 0</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>0 1 2 3 4 5 6 7 8 9 </pre></div>
+</div></div>
+</section>
+<section class="recall" id="recall">
+<h2>开始之前，先回想一下</h2>
+<p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
+<p class="q">想判断 a[i] 是不是等于 x，写成 <code>if (a[i] = x)</code>，错在 → <span class="a" tabindex="0">少了一个 =，成了赋值</span><span class="src">环03 细5</span></p>
+<p class="q">k = 0、i = 2，执行 <code>c[k++] = a[i++];</code> 之后 → <span class="a" tabindex="0">c[0] 得到 a[2]，k = 1，i = 3</span><span class="src">环01 细8</span></p>
+<p class="q">函数里 <code>int sum;</code> 不赋初值，sum 的值 → <span class="a" tabindex="0">不确定</span><span class="src">环01 ②</span></p>
+<p class="q">x = 5，<code>!x == 0</code> 的值 → <span class="a" tabindex="0">1（先算 !x 得 0，0 == 0 得 1）</span><span class="src">环03 细4</span></p>
+</section>
+<div class="part" id="p1">
+<h2>编程题怎么写</h2>
+<p>数组题最常见的错，是把「数组能装多少」和「现在装了几个」搞混（见 ⑧）。</p>
+</div>
+<section class="sec" id="gu" data-short="骨架">
+<h3><span class="t">通用骨架</span></h3>
+<div class="code"><pre><code class="c">// 冒泡：外层 n-1 趟，内层到 n-1-i
+for (i = 0; i &lt; n - 1; i++)
+    for (j = 0; j &lt; n - 1 - i; j++)
+        if (a[j] &gt; a[j + 1]) { t = a[j]; a[j] = a[j + 1]; a[j + 1] = t; }</code></pre></div>
+</section>
+<section class="sec" id="s1" data-short="① 冒泡排序">
+<h3><span class="no">①</span><span class="t">冒泡：每一趟把最大的冒到最后</span></h3>
+<p>相邻两个比，前面的大就交换。一趟走完，最大的就到了最后；下一趟就不用再管最后那个，所以内层上界一趟比一趟少 1。</p>
+<div class="tbl"><table>
+<tr><th></th><th>数组</th></tr>
+<tr><td>开始</td><td>5 1 4 2 3</td></tr>
+<tr><td>第 1 趟后</td><td>1 4 2 3 5</td></tr>
+<tr><td>第 2 趟后</td><td>1 2 3 4 5</td></tr>
+<tr><td>第 3、4 趟</td><td>不再变化</td></tr>
+</table></div>
+<p>n 个数最多 <span class="a" tabindex="0">n − 1</span> 趟。要从大到小，把 <code>&gt;</code> 改成 <code>&lt;</code>。</p>
+<p>交换要三句、借一个 t：<code>t = a[j]; a[j] = a[j + 1]; a[j + 1] = t;</code>。只写 <code>a[j] = a[j + 1]; a[j + 1] = a[j];</code> 会让两个格子变成同一个数，道理和环01 ⑤ 一样。</p>
+</section>
+<section class="sec" id="s2" data-short="② 选择排序">
+<h3><span class="no">②</span><span class="t">选择排序：记住最小值的下标</span></h3>
+<p>每一趟找出剩下的里面最小的，和第 i 个交换：</p>
+<div class="code"><pre><code class="c">for (i = 0; i &lt; n - 1; i++) {
+    k = i;
+    for (j = i + 1; j &lt; n; j++)
+        if (a[j] &lt; a[k]) k = j;          // 记下标，不记值
+    if (k != i) { t = a[i]; a[i] = a[k]; a[k] = t; }
+}</code></pre></div>
+<p>为什么记下标 k 而不记值？<span class="a" tabindex="0">只记住值，就不知道最小的在哪一格，没法交换</span>。</p>
+</section>
+<section class="sec" id="s3" data-short="③ 二分查找">
+<h3><span class="no">③</span><span class="t">二分查找：每次砍掉一半</span></h3>
+<p><b>只能用在有序数组上</b>。每次看中间那个，要找的比它大就去右半边，比它小就去左半边。在 {1, 3, 5, 7, 9, 11, 13} 里找 11：</p>
+<div class="tbl"><table>
+<tr><th>left</th><th>right</th><th>mid</th><th>a[mid]</th><th>下一步</th></tr>
+<tr><td>0</td><td>6</td><td>3</td><td>7</td><td>7 &lt; 11，left = 4</td></tr>
+<tr><td>4</td><td>6</td><td>5</td><td>11</td><td>找到，下标 5</td></tr>
+</table></div>
+<div class="code"><pre><code class="c">left = 0; right = n - 1;
+while (left &lt;= right) {
+    mid = (left + right) / 2;
+    if (a[mid] == x) return mid;
+    else if (a[mid] &lt; x) left = mid + 1;
+    else right = mid - 1;
+}
+return -1;                               // 找不到</code></pre></div>
+<p>三个容易错的地方：条件是 <code>left &lt;= right</code>，<b>等号不能丢</b>（只剩一个数时也要比）；更新是 <code>mid + 1</code> 和 <code>mid - 1</code>，写成 <code>left = mid</code> 可能死循环；找到的是<b>下标</b>，题目问「第几个」要加 1。</p>
+</section>
+<section class="sec" id="s4" data-short="④ 顺序查找">
+<h3><span class="no">④</span><span class="t">顺序查找：「没找到」放在循环外面判断</span></h3>
+<p>从头比到尾，找到就 break：</p>
+<div class="code"><pre><code class="c">for (k = 0; k &lt; n; k++)
+    if (a[k] == x) break;
+if (k &lt; n) 找到，下标 k;
+else       没找到;                         // 循环正常走完，k 等于 n</code></pre></div>
+<p><span class="trap">在循环里面写 else 打印「没找到」</span>，第一个不相等就会打出来。</p>
+</section>
+<section class="sec" id="s5" data-short="⑤ 有序插入">
+<h3><span class="no">⑤</span><span class="t">有序插入：从右往左搬</span></h3>
+<p>先找到第一个不小于 x 的位置 pos，再把 pos 以后的数<b>从最后一个开始</b>往右挪一格，空出 pos：</p>
+<div class="code"><pre><code class="c">pos = 0;
+while (pos &lt; n &amp;&amp; a[pos] &lt; x) pos++;
+for (i = n; i &gt; pos; i--) a[i] = a[i - 1];    // 从右往左搬
+a[pos] = x;
+n++;</code></pre></div>
+<p>{1, 3, 5, 7, 9} 插入 4 得 <span class="a" tabindex="0">1 3 4 5 7 9</span>。</p>
+<p>从左往右搬会怎样？a[pos+1] = a[pos] 之后，原来的 a[pos+1] 就被覆盖了，后面全是同一个数。</p>
+<p>数组定义时要<b>多留一格</b>（<code>int a[6]</code> 装 5 个数），插入后有效长度 n 要加 1。</p>
+</section>
+<section class="sec" id="s6" data-short="⑥ 合并两个有序数组">
+<h3><span class="no">⑥</span><span class="t">合并：两个游标，谁小取谁</span></h3>
+<div class="code"><pre><code class="c">i = j = k = 0;
+while (i &lt; na &amp;&amp; j &lt; nb) {
+    if (a[i] &lt;= b[j]) c[k++] = a[i++];
+    else              c[k++] = b[j++];
+}
+while (i &lt; na) c[k++] = a[i++];    // 收尾：最容易漏
+while (j &lt; nb) c[k++] = b[j++];</code></pre></div>
+<p>{1, 4, 9} 和 {2, 3, 10, 12} 合并成 <span class="a" tabindex="0">1 2 3 4 9 10 12</span>。第一个 while 结束时，a 已经取完，b 还剩 <span class="a" tabindex="0">10、12</span>，靠最后一个 while 抄过去。</p>
+<p><code>c[k++] = a[i++];</code> 就是「把 a[i] 放进 c[k]，然后 k、i 各加 1」（回顾里那道题）。</p>
+</section>
+<section class="sec" id="s7" data-short="⑦ 奇偶分组">
+<h3><span class="no">⑦</span><span class="t">分组：各用各的计数器</span></h3>
+<p>奇数放一个数组、偶数放另一个，每个数组有自己的「已经放了几个」：</p>
+<div class="code"><pre><code class="c">no = ne = 0;
+for (i = 0; i &lt; n; i++) {
+    if (a[i] % 2 != 0) odd[no++] = a[i];
+    else               even[ne++] = a[i];
+}</code></pre></div>
+<p>{5, 8, 3, 6, 1, 2, 7} 分完：奇数 <span class="a" tabindex="0">5 3 1 7</span>，偶数 <span class="a" tabindex="0">8 6 2</span>。然后各自排序。</p>
+<p>判奇数写 <code>a[i] % 2 != 0</code>，<span class="trap">别写 <code>== 1</code></span>：负奇数 % 2 是 −1（环01 细5）。</p>
+</section>
+<section class="sec" id="s8" data-short="⑧ 容量和有效长度">
+<h3><span class="no">⑧</span><span class="t">容量和有效长度要分开</span></h3>
+<p><code>int a[100]</code> 的 100 是<b>容量</b>（最多装几个），n 才是<b>现在装了几个</b>。排序、查找、输出，循环上界都用 n。</p>
+<p>写成 <code>for (i = 0; i &lt; 100; i++)</code>，没放数据的格子也被算进去，读到的是不确定的值。</p>
+</section>
+<div class="part" id="p2">
+<h2>一维数组的规矩</h2>
+<p>每一节最后附了真题的问法，灰色小字是出处。</p>
+</div>
+<section class="sec" id="d1" data-short="细1 长度必须是常量">
+<h3><span class="no">细1</span><span class="t">定义数组：长度必须是常量</span></h3>
+<div class="calc">
+  <code>int a[10];</code><span class="arrow"></span><span><span class="a" tabindex="0">合法</span></span>
+  <code>int a[2 + 3];</code><span class="arrow"></span><span><span class="a" tabindex="0">合法</span> <span class="note">常量表达式</span></span>
+  <span>#define N 10 后 int a[N];</span><span class="arrow"></span><span><span class="a" tabindex="0">合法</span> <span class="note">N 是符号常量</span></span>
+  <code>int n = 10; int a[n];</code><span class="arrow"></span><span><span class="a" tabindex="0">不合法</span> <span class="note">长度是变量（考试口径）</span></span>
+  <code>int a[];</code><span class="arrow"></span><span><span class="a" tabindex="0">不合法</span> <span class="note">没长度又没初值</span></span>
+  <code>int a[0..10]; 、int a(10);</code><span class="arrow"></span><span><span class="a" tabindex="0">不合法</span></span>
+</div>
+<p class="mute small">C99 允许「变长数组」<code>int a[n]</code>，gcc 能编译，但 VS 不支持，教材和考试都按不合法。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">哪个数组定义是错的 → <span class="a" tabindex="0">用变量当长度的那个，如 <code>int N = 5; int a[N];</code></span><span class="src">配-6-5、配-6-7、配-6-8、配-6-9</span></p>
+</div>
+</section>
+<section class="sec" id="d2" data-short="细2 初始化">
+<h3><span class="no">细2</span><span class="t">初始化：给少了补 0，给多了报错</span></h3>
+<div class="calc">
+  <code>int a[5] = {1, 2};</code><span class="arrow">→</span><span><span class="a" tabindex="0">1 2 0 0 0</span> <span class="note">没给的补 0</span></span>
+  <code>int b[] = {7, 8, 9};</code><span class="arrow">→</span><span><span class="a" tabindex="0">3 个元素</span> <span class="note">长度由初值个数决定</span></span>
+  <code>int c[8] = {0};</code><span class="arrow">→</span><span><span class="a" tabindex="0">全是 0</span> <span class="note">求和、计数数组的标准写法</span></span>
+  <code>int d[4] = {1, 2, 3, 4, 5};</code><span class="arrow">→</span><span><span class="a" tabindex="0">编译错</span> <span class="note">初值太多，不是「多的忽略」</span></span>
+  <code>int e[5] = {, 1, 2};</code><span class="arrow">→</span><span><span class="a" tabindex="0">编译错</span> <span class="note">不能跳着给</span></span>
+</div>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q"><code>int a[8] = {0};</code> 和 <code>int a[] = {0};</code> → <span class="a" tabindex="0">都合法</span><span class="src">配-6-2</span></p>
+<p class="q"><code>int a[5] = {, 1, 2};</code> → <span class="a" tabindex="0">不合法</span><span class="src">配-6-4</span></p>
+<p class="q"><code>char c[2] = {"A", "B"};</code> → <span class="a" tabindex="0">不合法</span><span class="src">配-6-6</span></p>
+</div>
+</section>
+<section class="sec" id="d3" data-short="细3 下标从 0 开始">
+<h3><span class="no">细3</span><span class="t">下标从 0 到 长度 − 1</span></h3>
+<p><code>int a[5];</code> 能用的是 a[0] 到 a[4]，<b>没有 a[5]</b>。</p>
+<p>越界编译器不报错，运行时会改掉别的变量、或者让程序崩溃，结果不确定（未定义行为）。所以讲义不演示它。</p>
+<p>下标必须是整数，可以是整数表达式（<code>a[i + 1]</code>、<code>a[m[0]]</code>），不能是 <span class="trap"><code>a[1.5]</code></span>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">关于下标的说法 → <span class="a" tabindex="0">下限不能是负数；<code>array[3.12]</code> 不合法</span><span class="src">配-6-3</span></p>
+</div>
+</section>
+<section class="sec" id="d4" data-short="细4 数组名不能赋值">
+<h3><span class="no">细4</span><span class="t">数组名不能被赋值</span></h3>
+<p>数组名代表数组的首地址，是一个<b>常量</b>。所以：</p>
+<div class="calc">
+  <code>int a[5], b[5]; a = b;</code><span class="arrow"></span><span><span class="a" tabindex="0">编译错</span> <span class="note">不能整体赋值</span></span>
+  <code>a = {1, 2, 3};</code><span class="arrow"></span><span><span class="a" tabindex="0">编译错</span> <span class="note">只有定义时能用 {} 初始化</span></span>
+  <code>if (a == b)</code><span class="arrow"></span><span><span class="a" tabindex="0">能编译，但比的是地址</span> <span class="note">不是比内容</span></span>
+</div>
+<p>要复制只能一个一个来：<code>for (i = 0; i &lt; 5; i++) a[i] = b[i];</code>。字符数组同理，<code>s = "abc";</code> 也不行（环08）。</p>
+</section>
+<section class="sec" id="d5" data-short="细5 sizeof 数组">
+<h3><span class="no">细5</span><span class="t">sizeof 数组名：整个数组的字节数</span></h3>
+<p><code>int a[10];</code> 时 <code>sizeof(a)</code> 是 <span class="a" tabindex="0">40</span>，元素个数 = <code>sizeof(a) / sizeof(a[0])</code> = 10。<code>double d[4];</code> 时 <code>sizeof(d)</code> 是 <span class="a" tabindex="0">32</span>。</p>
+<p>这个公式<b>只在定义数组的那个函数里有效</b>。数组传进别的函数就成了指针（细6），sizeof 得到的是指针的大小。所以函数参数总写成 <code>(int a[], int n)</code>，长度单独传。</p>
+</section>
+<section class="sec" id="d6" data-short="细6 数组作参数">
+<h3><span class="no">细6</span><span class="t">数组作函数参数：传的是地址</span></h3>
+<div class="code"><pre><code class="c">void f(int b[]) { b[0] = 99; }
+// main 里：
+int a[3] = {1, 2, 3};
+f(a);                         // 之后 a[0] 是 99</code></pre></div>
+<p>函数拿到的是数组的首地址，改的就是原来那个数组。形参写 <code>int b[]</code>、<code>int b[100]</code> 都一样，其实都是指针。</p>
+<p>调用写 <code>f(a)</code>，<span class="trap">不写 <code>f(a[])</code></span>，<span class="trap">也不写 <code>f(a[10])</code></span>（那是一个元素，还越界了）。</p>
+<p class="mute small">这是后面环09 的重点，这里先记住：<b>数组传进函数，函数能改原数组</b>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">形参 <code>float array[]</code> 实际是 → <span class="a" tabindex="0">指针变量</span><span class="src">配-6-35、配-6-36</span></p>
+<p class="q"><code>fun(b[11])</code> 这样调用 → <span class="a" tabindex="0">错误</span><span class="src">配-6-37</span></p>
+<p class="q">函数里 <code>b[i] *= 2</code>，回到主函数输出 → <span class="a" tabindex="0">数组已经变了</span><span class="src">配-6-38</span></p>
+</div>
+</section>
+<section class="sec" id="d7" data-short="细7 下标套下标">
+<h3><span class="no">细7</span><span class="t">下标里套下标：从里往外算</span></h3>
+<p><code>int m[] = {5, 4, 3, 2, 1};</code>，<code>m[m[3]]</code> 先算 m[3] 是 2，再算 m[2] 是 <span class="a" tabindex="0">3</span>。</p>
+<p>计数的经典写法：<code>c[s[i]]++</code>，数字 s[i] 出现一次，<code>c[s[i]]</code> 就加 1。s = {1, 2, 2, 3, 3, 3} 统计完，c[3] 是 <span class="a" tabindex="0">3</span>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q"><code>m[m[0]]</code>（m[0] 是 5，长度 5）=&gt; 越界<span class="src">配-6-10</span></p>
+<p class="q"><code>c[s[i]]++</code> 计数<span class="src">配-6-12</span></p>
+</div>
+</section>
+<section class="sec" id="d8" data-short="细8 原地逆序">
+<h3><span class="no">细8</span><span class="t">原地逆序：只走一半</span></h3>
+<p>第 i 个和第 n−1−i 个交换，<b>i 只走到 n/2</b>：</p>
+<div class="calc">
+  <span>for (i = 0; i &lt; n / 2; i++) 交换</span><span class="arrow">→</span><span><span class="a" tabindex="0">5 4 3 2 1</span> <span class="note">对</span></span>
+  <span>for (i = 0; i &lt; n; i++) 交换</span><span class="arrow">→</span><span><span class="a" tabindex="0">1 2 3 4 5</span> <span class="note">前一半换过去，后一半又换回来</span></span>
+</div>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">从大到小改成从小到大，选哪个循环 → <span class="a" tabindex="0"><code>for (i = 0; i &lt; n / 2; i++)</code></span><span class="src">配-6-13</span></p>
+</div>
+</section>
+<section class="sec" id="d9" data-short="细9 输入数组">
+<h3><span class="no">细9</span><span class="t">输入数组：&amp;a[i] 或 a + i</span></h3>
+<p><code>scanf("%d", &amp;a[i])</code> 和 <code>scanf("%d", a + i)</code> 都对：<code>a + i</code> 就是第 i 个元素的地址（指针在环11 细讲）。</p>
+<p><span class="trap"><code>scanf("%d", a[i])</code></span> 少了 &amp;（环01 细11）。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">填空：读入数组元素 → <span class="a" tabindex="0"><code>a + (i++)</code> 或 <code>&amp;a[i++]</code></span><span class="src">配-6-26、配-6-27</span></p>
+</div>
+</section>
+<section class="sec" id="d10" data-short="细10 不初始化是垃圾值">
+<h3><span class="no">细10</span><span class="t">不初始化的数组里是什么</span></h3>
+<p>函数里的局部数组不初始化，里面是不确定的值；<b>全局数组、static 数组自动全是 0</b>。</p>
+<p>求和、计数用的数组，一定写 <code>= {0}</code>：只写一个 0，其余全部补 0（细2）。</p>
+</section>
+    <div class="end">
+      <nav class="ringnav"><a href="r05.html"><small>← 上一环</small>环05 图案输出</a><a href="index.html"><small>目录</small>全部 13 环</a><a href="r07.html"><small>下一环 →</small>环07 矩阵操作</a></nav>
+    </div>
+
+  </main>
+</div>
+<div class="fab" id="fab"><button type="button" class="m" id="fab-toc" aria-label="打开目录">目录</button><button type="button" id="fab-top" aria-label="回到顶部">↑</button></div>
+<div class="drawer" id="drawer"><div class="shade"></div><div class="panel"><nav class="toc" id="toc-d" aria-label="目录"></nav></div></div>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var ring = root.getAttribute("data-ring");             // 目录页没有
+  var secs = Array.prototype.slice.call(document.querySelectorAll(".recall, .sec"));
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function label(s) {
+    if (s.classList.contains("recall")) return "开始之前";
+    return s.dataset.short || "";
+  }
+
+  /* 图标：Lucide（github.com/lucide-icons/lucide，ISC 许可），24×24 线条图标，内联才能离线用 */
+  var IC = {
+    code: '<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>',
+    bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    left: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    term: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + "</svg>"; }
+
+  /* 给各种块加图标、给代码块加标题栏 */
+  var PART_IC = { p1: "code", p2: "bulb", rings: "layers", base: "repeat", cover: "book", how: "compass" };
+  var parts = document.querySelectorAll(".part");
+  parts.forEach(function (p, i) {
+    var sp = document.createElement("span");
+    sp.className = "pic"; sp.innerHTML = ic(PART_IC[p.id] || (i ? "bulb" : "code"));
+    p.insertBefore(sp, p.firstChild);
+  });
+  document.querySelectorAll(".exam > p:first-child").forEach(function (p) { p.innerHTML = ic("target") + p.innerHTML; });
+  document.querySelectorAll(".fix").forEach(function (f) {
+    var t = document.createElement("span"); t.className = "ft"; t.innerHTML = ic("alert") + "注意";
+    f.insertBefore(t, f.firstChild);
+  });
+  document.querySelectorAll(".recall h2").forEach(function (h) { h.innerHTML = ic("history") + h.innerHTML; });
+  document.querySelectorAll(".code").forEach(function (box) {
+    var hd = document.createElement("div"), isOut = !!box.querySelector("pre.o");
+    hd.className = "hd";
+    hd.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' + (isOut ? ic("term") + "输出" : ic("code") + (box.dataset.label || "C"));
+    box.insertBefore(hd, box.firstChild);
+  });
+  /* 第二部分（细节）的节，目录高亮用紫色 */
+  var inP2 = false;
+  document.querySelectorAll(".part, .sec").forEach(function (el) {
+    if (el.classList.contains("part")) { inP2 = el !== parts[0]; return; }
+    if (inP2) el.classList.add("p2");
+  });
+
+  /* 目录：大部分做小标题，每一节一行 */
+  function buildToc(nav, withHome) {
+    if (!nav) return;
+    var h = "";
+    if (withHome && ring) h += '<a class="home" href="' + root.getAttribute("data-home") + '">' + ic("left") + "全部 13 环</a>";
+    document.querySelectorAll(".recall, .part, .sec").forEach(function (s) {
+      if (s.classList.contains("part")) h += "<p>" + s.querySelector("h2").textContent + "</p>";
+      else if (label(s)) h += '<a href="#' + s.id + '" data-id="' + s.id + '"' + (s.classList.contains("p2") ? ' class="p2"' : "") + ">" + label(s) + "</a>";
+    });
+    nav.innerHTML = h;
+  }
+  buildToc(document.getElementById("toc"), true);
+  buildToc(document.getElementById("toc-m"), false);
+  buildToc(document.getElementById("toc-d"), true);
+  document.querySelectorAll("#toc-m a").forEach(function (a) {
+    a.addEventListener("click", function () { a.closest("details").open = false; });
+  });
+
+  /* 空：点一下揭开 */
+  function hidden() { return root.classList.contains("hide"); }
+  document.querySelectorAll(".a").forEach(function (a) {
+    function flip() { if (hidden()) { a.classList.toggle("on"); syncSec(a.closest(".sec, .recall")); } }
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "点开看答案");
+    a.addEventListener("click", flip);
+    a.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+  document.querySelectorAll(".oa").forEach(function (o) {
+    function flip() { if (hidden()) { o.classList.toggle("on"); syncSec(o.closest(".sec, .recall")); } }
+    o.addEventListener("click", function (e) { if (!e.target.closest(".copy")) flip(); });
+    o.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); flip(); } });
+  });
+
+  /* 每节一个「本节答案」：一次揭开这一节的全部空 */
+  function blanks(s) { return s ? s.querySelectorAll(".a, .oa") : []; }
+  function syncSec(s) {
+    if (!s || !s._btn) return;
+    var all = blanks(s), open = 0;
+    for (var i = 0; i < all.length; i++) if (all[i].classList.contains("on")) open++;
+    var allOpen = open === all.length;
+    s._btn.dataset.open = allOpen ? "1" : "";
+    s._btn.innerHTML = allOpen ? ic("eyeoff") + "盖上本节" : ic("eye") + "本节答案";
+    s._btn.hidden = !hidden();
+  }
+  secs.forEach(function (s) {
+    var head = s.querySelector("h3, h2");
+    if (!head || !blanks(s).length) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "secbtn";
+    b.addEventListener("click", function () {
+      var all = blanks(s), allOpen = b.dataset.open === "1";
+      for (var i = 0; i < all.length; i++) all[i].classList.toggle("on", !allOpen);
+      syncSec(s);
+    });
+    head.appendChild(b);
+    s._btn = b;
+    syncSec(s);
+  });
+
+  /* 全部揭开 / 盖上 */
+  /* 每道题的完整程序：点一下展开 / 收起 */
+  document.querySelectorAll(".prog-btn").forEach(function (b) {
+    b.innerHTML = ic("code") + "完整程序";
+    b.addEventListener("click", function () {
+      var on = b.parentNode.classList.toggle("on");
+      b.setAttribute("aria-expanded", on ? "true" : "false");
+      b.innerHTML = ic("code") + (on ? "收起程序" : "完整程序");
+    });
+  });
+  var btn = document.getElementById("toggle");
+  function toggleAll() {
+    if (!btn) return;
+    var h = root.classList.toggle("hide");
+    document.querySelectorAll(".a.on, .oa.on, .prog.on").forEach(function (a) { a.classList.remove("on"); });
+    document.querySelectorAll(".prog-btn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.innerHTML = ic("code") + "完整程序"; });
+    btn.innerHTML = h ? ic("eye") + "全部揭开" : ic("eyeoff") + "全部盖上";
+    btn.setAttribute("aria-pressed", h ? "false" : "true");
+    secs.forEach(syncSec);
+  }
+  if (btn) { btn.innerHTML = ic("eye") + "全部揭开"; btn.addEventListener("click", toggleAll); }
+
+  /* 当前读到哪一节：目录高亮，并记下来，下次打开可以接着读 */
+  var current = null;
+  function setCurrent(s) {
+    if (current === s) return;
+    current = s;
+    document.querySelectorAll(".toc a[data-id]").forEach(function (a) { a.classList.toggle("cur", a.dataset.id === s.id); });
+    if (ring) {
+      save("c-lesson-pos-" + ring, s.id);
+      save("c-lesson-last", { ring: ring, name: root.getAttribute("data-name"), sec: label(s) });
+    }
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target); });
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 上次读到哪：给一个「继续」 */
+  var resume = document.getElementById("resume");
+  if (resume && ring && !location.hash) {
+    var pos = load("c-lesson-pos-" + ring), target = pos && document.getElementById(pos);
+    if (target && secs.indexOf(target) > 1) {
+      resume.innerHTML = '<span>上次读到</span><a href="#' + pos + '">' + label(target) + ' →</a><button type="button">不用了</button>';
+      resume.classList.add("on");
+      resume.querySelector("a").addEventListener("click", function () { resume.classList.remove("on"); });
+      resume.querySelector("button").addEventListener("click", function () { resume.classList.remove("on"); });
+    }
+  }
+  /* 目录页：标出上次看的那一环 */
+  if (!ring) {
+    var last = load("c-lesson-last");
+    if (last && last.ring) {
+      var li = document.querySelector('.rings li[data-ring="' + last.ring + '"]');
+      if (li) {
+        li.classList.add("last");
+        if (last.sec) {
+          var p = document.createElement("p");
+          p.textContent = "上次读到：" + last.sec;
+          p.style.color = "var(--green)";
+          li.appendChild(p);
+        }
+      }
+    }
+  }
+
+  /* 阅读进度条、浮动按钮 */
+  var bar = document.getElementById("progress"), fab = document.getElementById("fab"), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + "%";
+    if (fab) fab.classList.toggle("on", window.scrollY > 500);
+    ticking = false;
+  }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+  var drawer = document.getElementById("drawer");
+  function closeDrawer() { if (drawer) drawer.classList.remove("on"); }
+  var top = document.getElementById("fab-top");
+  if (top) top.innerHTML = ic("up");
+  if (document.getElementById("fab-toc")) document.getElementById("fab-toc").innerHTML = ic("list");
+  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+  var ft = document.getElementById("fab-toc");
+  if (ft) ft.addEventListener("click", function () {
+    drawer.classList.add("on");
+    var cur = drawer.querySelector("a.cur");
+    if (cur) cur.scrollIntoView({ block: "center" });
+  });
+  if (drawer) {
+    drawer.querySelector(".shade").addEventListener("click", closeDrawer);
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeDrawer); });
+  }
+
+  /* 键盘：J 下一节，K 上一节，A 全部揭开 / 盖上，Esc 关目录 */
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "Escape") { closeDrawer(); return; }
+    var k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && secs.length) {
+      var i = current ? secs.indexOf(current) : -1;
+      var n = secs[Math.max(0, Math.min(secs.length - 1, i + (k === "j" ? 1 : -1)))];
+      if (n) { n.scrollIntoView({ behavior: "instant", block: "start" }); setCurrent(n); }
+    } else if (k === "a" && btn) {
+      toggleAll();
+    }
+  });
+
+  /* C 代码着色 */
+  var KW = /^(int|double|float|char|long|short|unsigned|signed|void|return|for|while|do|if|else|switch|case|break|continue|sizeof|struct|union|enum|typedef|static|extern|register|auto|const|default|goto|FILE|NULL|EOF)$/;
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(src) {
+    var out = "", re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|(\b\d+(?:\.\d*)?(?:[eE][-+]?\d+)?[fFlL]?\b)|([A-Za-z_]\w*)/gm, m, last = 0;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) out += '<span class="t-com">' + esc(t) + "</span>";
+      else if (m[2]) out += '<span class="t-str">' + esc(t) + "</span>";
+      else if (m[3]) out += '<span class="t-pre">' + esc(t) + "</span>";
+      else if (m[4]) out += '<span class="t-num">' + esc(t) + "</span>";
+      else if (KW.test(t)) out += '<span class="t-kw">' + t + "</span>";
+      else out += esc(t);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll("pre code.c").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  /* 复制：方便贴进 草稿.c 自己跑 */
+  document.querySelectorAll(".code").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.innerHTML = ic("copy") + "复制";
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      function done(msg) { b.innerHTML = ic("check") + msg; setTimeout(function () { b.innerHTML = ic("copy") + "复制"; }, 1400); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        done("已选中，按 Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(pre.textContent).then(function () { done("已复制"); }, fallback); }
+      catch (err) { fallback(); }
+    });
+    (box.querySelector(".hd") || box).appendChild(b);
+  });
+})();
+</script>

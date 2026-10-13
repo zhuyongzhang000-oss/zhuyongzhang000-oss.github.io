@@ -1,0 +1,1032 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
+<title>环10 递归讲义</title>
+<meta name="description" content="C 语言环10：递归的基例和规模、每层独立、输出顺序、逆推、Hanoi、双基例递推、回溯，以及 #define、带参数的宏、#include、条件编译等预处理考点。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版式：布面唱片封面。七种中明度布色轮换（石板蓝、赭黄、鼠尾草、灰粉、青绿、薰衣草、暖灰），
+   每一环的页头是一块圆角布面，正文是一张安静的纸。字距拉开的人文无衬线，留白多，字像压印在布上。 */
+:root {
+  /* 纸和墨 */
+  --desk: #d9d4ca;  --paper: #f5f2eb;  --tint: #ece7dd;
+  --text: #2e302b;  --sub: #6b6960;  --faint: #8f8b80;  --rule: #ddd6c8;
+  --code-bg: #ebe6dc;
+  --r: 16px;  --r-s: 10px;   /* 圆角 */
+  --pen: #b5482a;           /* 答案：红笔 */
+  --tok-kw: #3d5462;  --tok-str: #a8502c;  --tok-num: #8f6510;  --tok-com: #8f8a7c;  --tok-pre: #7d5a3c;
+  /* Atkinson Hyperlegible：0 带斜线、1 l I 分得开，数字是等高的 */
+  --f-latin: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+           repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+    --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+    --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+  --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+  --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+  color-scheme: dark;
+}
+/* 七块布：布色 / 布上标题 / 布上正文 / 纸上强调色（浅、深两种模式） */
+:root, [data-tone="a"] { --cloth: #56707f; --ink: #f4b788; --soft: #f1f1ec; --acc-l: #a5592c; --acc-d: #e8a06c; }
+[data-tone="b"] { --cloth: #cda85a; --ink: #8e361b; --soft: #3a2712; --acc-l: #a34622; --acc-d: #e8895f; }
+[data-tone="c"] { --cloth: #97a68a; --ink: #36294a; --soft: #232a1f; --acc-l: #55703f; --acc-d: #b3c79f; }
+[data-tone="d"] { --cloth: #cfa194; --ink: #5a2632; --soft: #3a1f24; --acc-l: #a24a4f; --acc-d: #ec9aa0; }
+[data-tone="e"] { --cloth: #477774; --ink: #f5d89e; --soft: #f1f3ee; --acc-l: #2c706c; --acc-d: #8cc7c0; }
+[data-tone="f"] { --cloth: #a7a1c0; --ink: #2c2752; --soft: #221f38; --acc-l: #5c5397; --acc-d: #b7afe0; }
+[data-tone="g"] { --cloth: #6e6c63; --ink: #f2c565; --soft: #f5f0e4; --acc-l: #8a610c; --acc-d: #e2a129; }
+:root, [data-tone] { --acc: var(--acc-l); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]), :root:not([data-theme="light"]) [data-tone] { --acc: var(--acc-d); } }
+:root[data-theme="dark"], :root[data-theme="dark"] [data-tone] { --acc: var(--acc-d); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; color: var(--text); font: 17px/1.9 var(--f-body); -webkit-text-size-adjust: 100%; font-variant-numeric: lining-nums;
+  background: var(--desk); background-image: var(--linen); }
+a { color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+b, strong { font-weight: 700; }
+code, pre { font-family: var(--f-code); font-size: .84em; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+:not(pre) > code { background: var(--tint); padding: .08em .4em; border-radius: 5px; white-space: pre-wrap;
+  display: inline-block; max-width: 100%; line-height: 1.55; vertical-align: baseline; }
+::selection { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+:focus-visible { outline: 1.5px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+.ic { width: 1em; height: 1em; flex: none; vertical-align: -.12em; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+#progress { position: fixed; left: 0; top: env(safe-area-inset-top, 0px); height: 2px; width: 0; z-index: 30;
+  background: var(--acc); transition: width .1s linear; }
+
+/* 布局：左边一列目录，右边一张纸 */
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 28px; padding-block: 40px 110px;
+  display: grid; grid-template-columns: 190px minmax(0, 790px); justify-content: center; gap: 48px; }
+main { min-width: 0; max-width: 790px; background: var(--paper); padding: 0 72px 64px; border-radius: var(--r); overflow: clip;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -24px rgba(0,0,0,.35); }
+
+/* 目录 */
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start;
+  max-height: calc(100vh - 56px); overflow-y: auto; padding-block: 4px 24px; font-size: 14px; line-height: 1.55; scrollbar-width: thin; }
+.toc .home { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--sub); text-decoration: none;
+  font: 15px/1 var(--f-latin); letter-spacing: .12em; }
+.toc .home:hover { color: var(--acc); }
+.toc p { margin: 22px 0 6px; color: var(--faint); font-size: 12px; letter-spacing: .16em; }
+.toc > p:first-child, .toc .home + p { margin-top: 0; }
+.toc a { display: block; padding: 3px 0 3px 12px; border-left: 1.5px solid transparent; color: var(--sub); text-decoration: none; transition: color .2s, border-color .2s; }
+.toc a:hover { color: var(--text); }
+.toc a.cur { color: var(--acc); border-left-color: var(--acc); }
+.toc-m { display: none; }
+
+/* 页头：一张布面封面 */
+header { margin: 0 -72px; padding: 76px 72px 52px; color: var(--ink);
+  background: var(--cloth); background-image: var(--linen); position: relative; }
+.kicker { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  font: 500 15px/1.4 var(--f-latin); letter-spacing: .16em; opacity: .9; }
+.kicker a { color: inherit; text-decoration: none; }
+.kicker a:hover { text-decoration: underline; }
+.chip { font: inherit; letter-spacing: .2em; }
+h1 { font-weight: 400; font-size: clamp(30px, 5vw, 42px); line-height: 1.35; margin: 64px 0 22px; letter-spacing: .14em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 -1px 0 rgba(255,255,255,.06); text-wrap: balance; }
+.intro p { margin: 0 0 8px; color: var(--soft); font-size: 15.5px; line-height: 1.85; max-width: 38em; opacity: .92; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 28px; font-size: 14px;
+  color: var(--soft); }
+header :not(pre) > code { background: color-mix(in srgb, var(--soft) 16%, transparent); color: var(--soft); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-body); letter-spacing: .08em; color: var(--ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; padding: 10px 20px; cursor: pointer;
+  transition: background .2s; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--cloth); }
+.resume { display: none; margin-top: 20px; padding: 12px 0 0; font-size: 14.5px; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+.resume.on { display: flex; }
+.resume a { color: var(--ink); font-weight: 600; }
+.resume button { margin-left: auto; font: inherit; font-size: 13px; color: inherit; background: none; border: 0; cursor: pointer; opacity: .8; }
+
+/* 两大部分 */
+.part { margin-top: 84px; }
+.part .pic { display: none; }
+.part h2 { font-weight: 400; font-size: 25px; line-height: 1.4; margin: 0; letter-spacing: .14em; color: var(--acc); }
+.part h2::before { content: ""; display: block; width: 28px; height: 1.5px; background: var(--acc); margin-bottom: 18px; }
+.part > p { margin: 8px 0 0; color: var(--sub); font-size: 15.5px; }
+
+/* 每一节 */
+.sec { padding-top: 56px; scroll-margin-top: 20px; }
+.part + .sec { padding-top: 26px; }
+.sec h3 { font-weight: 500; font-size: 20px; line-height: 1.5; margin: 0 0 14px; letter-spacing: .04em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 14px; }
+.sec h3 .no { flex: none; font: 500 16px/1 var(--f-latin); color: var(--acc); letter-spacing: .08em; min-width: 1.4em; }
+.sec h3 .t { flex: 1; min-width: 0; }
+.secbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 13px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 4px 0; cursor: pointer; transition: color .2s, border-color .2s; white-space: nowrap; }
+.secbtn:hover { color: var(--acc); border-bottom-color: var(--acc); }
+.secbtn[hidden] { display: none; }
+.sec p { margin: 14px 0; }
+.sec ul { margin: 14px 0; padding-left: 1.2em; }
+.sec li { margin: 8px 0; }
+.sec li::marker { color: var(--acc); }
+.mute { color: var(--sub); }
+.small { font-size: 14.5px; }
+mark { background: color-mix(in srgb, var(--ink) 25%, transparent); color: inherit; padding: 0 .15em; }
+
+/* 空：一段虚线，点开后红笔写上 */
+.a { color: var(--pen); font-weight: 600; }
+.hide .a:not(.on) { color: transparent !important; cursor: pointer; user-select: none; border-radius: 4px 4px 0 0;
+  display: inline-block; width: 3.4em; height: 1.3em; overflow: hidden; white-space: nowrap; vertical-align: -0.24em;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--acc) 70%, transparent); transition: background .2s; }
+.hide .a:not(.on):hover { background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.hide .a:not(.on) * { visibility: hidden; }
+.a.on, .wrap:not(.hide) .a { animation: ink .4s ease-out; }
+.a code { color: inherit; background: transparent; padding: 0; }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+
+.trap { text-decoration: underline wavy var(--pen); text-decoration-thickness: 1.2px; text-underline-offset: 4px; }
+
+/* 代码 */
+.code { position: relative; margin: 20px 0; background: var(--code-bg); border-radius: var(--r-s); }
+.code .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0 20px; font: 12px/1 var(--f-latin); letter-spacing: .2em; color: var(--faint); }
+.code .hd > .ic, .code .dots { display: none; }
+.code pre { margin: 0; padding: 8px 20px 16px; overflow-x: auto; line-height: 1.75; font-size: 14px; }
+.copy { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-transform: none; }
+.copy:hover { color: var(--acc); }
+.t-kw { color: var(--tok-kw); font-weight: 600; }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-com { color: var(--tok-com); font-style: italic; }
+.t-pre { color: var(--tok-pre); }
+pre.o { font-family: var(--f-code); color: var(--sub); }
+
+.hide .oa:not(.on) { cursor: pointer; }
+.hide .oa:not(.on) pre { color: transparent; user-select: none; background-image: var(--linen); }
+.hide .oa:not(.on)::after { content: "先在纸上画出来，再点一下看输出"; position: absolute; left: 20px; top: 42px;
+  font: 14px/1.4 var(--f-body); color: var(--sub); letter-spacing: .04em; }
+.hide .oa:not(.on) .copy { visibility: hidden; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.pair .code { margin: 0; }
+.pair .lab { font-size: 13px; color: var(--acc); letter-spacing: .1em; margin-bottom: 6px; }
+
+/* 写法 → 结果 */
+.calc { display: grid; grid-template-columns: fit-content(55%) max-content minmax(0, 1fr); gap: 0 18px;
+  margin: 18px 0; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.calc > * { padding: 8px 0; }
+.calc > code:not(.a) { justify-self: start; white-space: pre-wrap; margin: 6px 0; padding: .15em .5em; }
+.calc > :nth-child(3n+1) { min-width: 0; }
+.calc .arrow { color: var(--faint); font-size: 14px; }
+.calc .note { color: var(--sub); font-size: 14.5px; }
+
+.tbl { overflow-x: auto; margin: 18px 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 50%; }
+th, td { padding: 8px 22px 8px 0; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--faint); font-size: 12.5px; letter-spacing: .14em; }
+td code { white-space: nowrap; }
+
+/* 真题、注意 */
+.exam, .fix { margin: 24px 0 0; padding: 14px 20px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--acc) 7%, transparent); }
+.exam > p:first-child, .fix .ft { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12.5px; letter-spacing: .2em; color: var(--acc); }
+.q { margin: 9px 0; }
+.src { font: 13px/1 var(--f-latin); color: var(--faint); margin-left: 12px; white-space: nowrap; letter-spacing: .06em; }
+.fix { background: color-mix(in srgb, var(--pen) 7%, transparent); font-size: 15.5px; }
+.fix .ft { color: var(--pen); }
+
+.out { font-family: var(--f-code); font-size: .84em; white-space: pre; background: var(--code-bg); padding: .08em .4em; border-radius: 5px; }
+
+/* 回顾：一小块浅色布 */
+.recall { margin: 0 -72px; padding: 30px 72px 26px; scroll-margin-top: 20px; background: var(--tint); }
+.recall h2 { font-weight: 500; font-size: 15px; letter-spacing: .2em; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--acc); }
+.recall h2 .secbtn { margin-left: auto; }
+.recall > p { margin: 0 0 10px; color: var(--sub); font-size: 14.5px; }
+.recall .q { margin: 8px 0; }
+.recall :not(pre) > code { background: var(--paper); }
+
+/* 结尾 */
+.end { margin-top: 84px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.end h2 { font-weight: 400; font-size: 22px; letter-spacing: .14em; color: var(--acc); margin: 0 0 8px; }
+.ringnav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; font-size: 15px; }
+.ringnav a, .ringnav span { flex: 1 1 0; min-width: 0; }
+.ringnav a { text-decoration: none; padding: 14px 18px; color: var(--text); border: 1px solid var(--rule); border-radius: var(--r-s); transition: border-color .2s, background .2s; }
+.ringnav a:hover { background: color-mix(in srgb, var(--acc) 6%, transparent); }
+.ringnav a:hover { border-color: var(--acc); }
+.ringnav a small { display: block; font: 12.5px/1.4 var(--f-latin); letter-spacing: .16em; color: var(--faint); }
+.ringnav a:nth-child(2) { text-align: center; }
+.ringnav a:last-child { text-align: right; }
+.keys { margin-top: 20px; font-size: 13px; color: var(--faint); letter-spacing: .04em; }
+.keys kbd { font: 12px/1 var(--f-code); border: 1px solid var(--rule); border-radius: 5px; padding: 2px 6px; color: var(--sub); }
+details.legend { margin-top: 26px; font-size: 14px; color: var(--sub); }
+details.legend summary { cursor: pointer; }
+details.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; margin: 10px 0 0; }
+details.legend dt { font: 13px/1.8 var(--f-latin); letter-spacing: .06em; }
+details.legend dd { margin: 0; }
+
+/* 目录页：13 张小卡，每张左边一块圆角布面色签 */
+.rings { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rings li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: center;
+  padding: 10px 14px 10px 10px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.rings li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cloth) 70%, transparent);
+  box-shadow: 0 10px 22px -16px rgba(0,0,0,.5); }
+.rings .rn { grid-row: 1 / span 3; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--cloth); background-image: var(--linen); color: var(--ink); font: 500 17px/1 var(--f-latin); letter-spacing: .08em; }
+.rings a { font-weight: 500; font-size: 16px; line-height: 1.45; letter-spacing: .06em; color: var(--text); text-decoration: none; }
+.rings a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.rings p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rings li.last { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 6%, var(--paper)); }
+.rings li.last a::before { content: "上次 · "; color: var(--acc); font-size: 13px; letter-spacing: .1em; }
+.rings li.last p:last-child { color: var(--acc) !important; }
+
+/* 浮动按钮 */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fab.on { opacity: 1; pointer-events: auto; }
+.fab button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cloth); background-image: var(--linen); color: var(--ink);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.6); cursor: pointer; display: grid; place-items: center; }
+.fab .m { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 40; display: none; }
+.drawer.on { display: block; }
+.drawer .shade { position: absolute; inset: 0; background: rgba(20, 20, 18, .45); }
+.drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(80vw, 310px); background: var(--paper); border-radius: var(--r) 0 0 var(--r);
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 24px 28px; overflow-y: auto; }
+.drawer .toc { display: block; position: static; max-height: none; padding: 0; font-size: 15px; }
+
+/* 窄于 1100（分屏、平板）：目录收进抽屉，纸张居中 */
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 790px); gap: 0; padding-inline: 24px; }
+  .wrap > .toc { display: none; }
+  .toc-m { display: block; margin-top: 22px; font-size: 15px; color: var(--ink); }
+  .toc-m summary { cursor: pointer; letter-spacing: .1em; }
+  .toc-m .toc { display: block; position: static; max-height: none; padding: 10px 0 0; columns: 2; column-gap: 24px; }
+  .toc-m .toc a { color: inherit; opacity: .85; border-left: 0; padding-left: 0; }
+  .toc-m .toc p { break-after: avoid; color: inherit; opacity: .6; }
+  .fab .m { display: grid; }
+  .keys { display: none; }
+}
+/* 手机：纸张铺满 */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 0; padding-block: 0 80px; }
+  main { padding: 0 20px 48px; box-shadow: none; border-radius: 0; }
+  header { margin: 0 -20px; padding: 48px 20px 36px; border-radius: 0 0 22px 22px; }
+  h1 { margin-top: 40px; }
+  .recall { margin: 0 -20px; padding: 24px 20px 20px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; line-height: 1.9; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .calc { grid-template-columns: minmax(0, 1fr); }
+  .calc > * { padding: 3px 0; }
+  .calc .arrow { display: none; }
+  .calc > :nth-child(3n) { padding-left: 1em; padding-bottom: 10px; }
+  .src { display: block; margin: 4px 0 0; }
+  .sec h3 { flex-wrap: wrap; }
+  .secbtn { margin-left: auto; }
+  .rings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  pre.fig { font-size: 13px; }
+  .stem { padding: 12px 14px; }
+  .ringnav a:nth-child(2) { order: 3; flex-basis: 100%; }
+}
+
+/* 5 道真题 */
+.prob { padding-top: 48px; }
+.prob h3 .no { font-weight: 700; }
+.pmeta { margin: -6px 0 12px !important; font-size: 13.5px; color: var(--faint); letter-spacing: .04em; }
+.ptag { display: inline-block; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+  color: var(--acc); background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.stem { padding: 14px 18px; border-radius: var(--r-s); background: var(--tint); }
+.stem p, .req p { margin: 6px 0 !important; }
+pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space: pre; overflow-x: auto; background: none; }
+.req { margin-top: 14px; }
+.req .lab, .io .lab { margin: 0 0 2px !important; font-size: 12.5px; letter-spacing: .16em; color: var(--faint); }
+.hints { list-style: none; padding: 0 !important; margin: 12px 0 0 !important; font-size: 15.5px; }
+.hints li { margin: 4px 0 !important; }
+.hints b { font-weight: 600; color: var(--acc); margin-right: .6em; }
+.hints b::after { content: "："; display: none; }
+.refs { margin: 10px 0 0 !important; font-size: 14px; color: var(--faint); }
+.refs a { margin-right: 6px; text-decoration: none; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.prog { margin-top: 16px; }
+.prog-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: transparent;
+  color: var(--acc); border-radius: 999px; padding: 6px 16px; font: 500 14px/1.2 var(--f-body); letter-spacing: .06em; cursor: pointer; }
+.prog-btn:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.hide .prog:not(.on) .prog-body { display: none; }
+.wrap:not(.hide) .prog-btn { display: none; }
+.prog-body { margin-top: 12px; }
+.prog-body .code { margin: 10px 0; }
+.tip { margin: 0 !important; padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; background: color-mix(in srgb, var(--pen) 7%, transparent); }
+.tip b { color: var(--pen); font-weight: 600; margin-right: .7em; }
+.io { margin: 10px 0 0; }
+.io pre { margin: 0; padding: 10px 16px; border-radius: var(--r-s); background: var(--code-bg); font: 14px/1.65 var(--f-code); overflow-x: auto; color: var(--sub); }
+</style>
+
+<div id="progress" aria-hidden="true"></div>
+<div class="wrap hide" id="root" data-ring="10" data-name="递归" data-home="index.html" data-tone="c">
+  <nav class="toc" id="toc" aria-label="目录"></nav>
+  <main>
+    <header>
+      <p class="kicker"><a href="index.html">C 语言讲义</a><span class="chip">环 10</span></p>
+      <h1>递归</h1>
+      <div class="intro">
+        <p>递归就是函数调用自己。只要守住两件事：<b>有一个不用再调用的最小情况（基例）</b>，<b>每次调用规模都变小</b>。前半份讲递归怎么写、怎么读；后半份讲预处理（#define、#include），读程序题里宏展开很常考。</p>
+      </div>
+      <div class="tools">
+        <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
+      </div>
+      <div class="resume" id="resume"></div>
+      <details class="toc-m"><summary>目录</summary><nav class="toc" id="toc-m" aria-label="目录"></nav></details>
+    </header>
+<div class="part" id="zt">
+<h2>5 道真题</h2>
+<p>先自己写，写完再打开完整程序对照。每个程序都编译运行过，下面的运行结果就是它的真实输出。</p>
+</div>
+<section class="sec prob" id="t1" data-short="题1 猴子吃桃">
+<h3><span class="no">题1</span><span class="t">猴子吃桃</span></h3>
+<p class="pmeta"><span class="ptag">代表题</span> · 教材第5章习题12（改编：要求用递归）</p>
+<div class="stem"><p>猴子吃桃问题。猴子第 1 天摘下若干个桃子，当即吃了一半，还不过瘾，又多吃了一个。</p>
+<p>第 2 天早上又将剩下的桃子吃掉一半，又多吃了一个。以后每天早上都吃了前一天剩下的一半零一个。</p>
+<p>到第 10 天早上想再吃时，就只剩下一个桃子了。求第 1 天共摘多少个桃子。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>peach(day)</code> 返回第 day 天早上（还没吃时）有几个桃子，必须用递归。</p>
+<p><code>peach(10)</code> 是 1；题目要的答案是 <code>peach(1)</code>。</p></div>
+<ul class="hints"><li><b>思路</b>先写出「今天的」和「明天的」的关系；基例是第 10 天。</li></ul>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s5">⑤</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>关系：今天 = (明天 + 1) * 2；基例第 10 天是 1。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int peach(int day)
+{
+    if (day == 10) return 1;
+    return (peach(day + 1) + 1) * 2;
+}
+
+int main(void)
+{
+    printf("第 1 天共摘了 %d 个桃子\n", peach(1));
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>第 1 天共摘了 1534 个桃子</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t2" data-short="题2 整数转字符串">
+<h3><span class="no">题2</span><span class="t">整数转字符串</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第7章习题17</p>
+<div class="stem"><p>用递归法将一个整数 n 转换成字符串。例如，输入 483，应输出字符串 "483"。</p>
+<p>n 的位数不确定，可以是任意位数的整数。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>convert(n)</code> 用递归把 n 的每一位当字符输出（用 putchar 或 <code>printf("%c")</code>），不换行。</p>
+<p>负数先输出 '-'；0 输出 "0"。</p></div>
+<ul class="hints"><li><b>思路</b>先递归处理 n/10，再输出 n%10 对应的字符（'0' + n%10）。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a> <a href="#s4">④</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>先递归后输出，高位才在前；负数先处理符号。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void convert(int n)
+{
+    if (n &lt; 0) { putchar('-'); n = -n; }
+    if (n &gt;= 10) convert(n / 10);
+    putchar('0' + n % 10);
+}
+
+int main(void)
+{
+    int n;
+    scanf("%d", &amp;n);
+    convert(n);
+    printf("\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>483</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>483</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 递归改错">
+<h3><span class="no">题3</span><span class="t">递归改错</span></h3>
+<p class="pmeta"><span class="ptag">改错</span> · 圣才配套题库 第4章改错题1</p>
+<div class="stem"><p>下列给定程序中，函数 fun 的功能是按以下递归公式求函数的值：</p>
+<p><code>fun(n)</code> = 10（n=1）；<code>fun(n)</code> = <code>fun(n-1)</code> + 2（n&gt;1）</p>
+<p>例如，当给 n 输入 5 时，函数值为 18；当给 n 输入 3 时，函数值为 14。</p>
+<p>请改正程序中的错误，使它能得出正确的结果。不得增行或删行，也不得更改程序的结构！</p>
+<p>原程序（有两处错，在 found 下面一行）：</p>
+<pre class="fig">/***found***/
+fun(n)
+{
+    int c;
+    /***found***/
+    if(n=1)
+        c=10;
+    else
+        c=fun(n-1)+2;
+    return(c);
+}</pre></div>
+<div class="req"><p class="lab">要求</p><p>把改好的 fun 写出来（先自己找出两处错，再动手）。</p></div>
+<p class="refs">对应讲义　<a href="#d8">细8</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>两处错：① <code>fun(n)</code> 没写返回类型和形参类型 → int <code>fun(int n)</code>；② <code>if(n=1)</code> 是赋值 → <code>if(n==1)</code>。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int fun(int n)
+{
+    int c;
+    if (n == 1)
+        c = 10;
+    else
+        c = fun(n - 1) + 2;
+    return (c);
+}
+
+int main(void)
+{
+    int n;
+    scanf("%d", &amp;n);
+    printf("%d\n", fun(n));
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>5</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>18</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 勒让德">
+<h3><span class="no">题4</span><span class="t">勒让德</span></h3>
+<p class="pmeta"><span class="ptag">综合</span> · 教材第7章习题13</p>
+<div class="stem"><p>用递归方法求 n 阶勒让德多项式的值，递归公式为：</p>
+<pre class="fig">P_n(x) = 1                                             （n = 0）
+P_n(x) = x                                             （n = 1）</pre>
+<p><code>P_n(x)</code> = ((2n-1)·x·P_{n-1}(x) - (n-1)·P_{n-2}(x)) / n  （n &gt; 1）</p>
+<p>说明：原书公式是图片看不清，上面是通行的勒让德递推式，Notion 题库里标了「存疑」。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>legendre(n, x)</code> 返回 <code>P_n(x)</code>。</p></div>
+<ul class="hints"><li><b>注意</b>两个基例都要写；(2n-1) 和 (n-1) 是整数，乘上 double 才变 double，最后除以 n 要保证是小数除法。</li></ul>
+<p class="refs">对应讲义　<a href="#s7">⑦</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>两个基例；n 是 int，但式子里有 double 的 x，整体按 double 算。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+double legendre(int n, double x)
+{
+    if (n == 0) return 1;
+    if (n == 1) return x;
+    return ((2 * n - 1) * x * legendre(n - 1, x) - (n - 1) * legendre(n - 2, x)) / n;
+}
+
+int main(void)
+{
+    int n;
+    double x;
+    scanf("%d%lf", &amp;n, &amp;x);
+    printf("P%d(%g) = %f\n", n, x, legendre(n, x));
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>3 0.5</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>P3(0.5) = -0.437500</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t5" data-short="题5 拉丁方阵">
+<h3><span class="no">题5</span><span class="t">拉丁方阵</span></h3>
+<p class="pmeta"><span class="ptag">限时·难</span> · 2023 第2题 · 限时 25 分钟</p>
+<div class="stem"><p>拉丁方阵定义：一个 n×n 的方阵，满足：每一行包含数字 1 到 n，且不重复；每一列也包含数字 1 到 n，且不重复。要求输出所有可能的 n×n 拉丁方阵。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>latin(n)</code> 输出所有 n×n 拉丁方阵（n &lt;= 4）：</p>
+<p>每个方阵占 n 行，数之间一个空格；每个方阵后面空一行；最后一行输出 "共 k 个"。</p>
+<p>顺序规定：按行从左到右一格一格填，每格从 1 试到 n（这样输出顺序是唯一的）。</p>
+<p>例如 n=2：</p>
+<pre class="fig">1 2
+2 1</pre>
+<pre class="fig">2 1
+1 2</pre>
+<p>共 2 个</p></div>
+<ul class="hints"><li><b>思路</b>回溯。可以在本文件里自己再写辅助函数和全局数组（加 static 更好）。</li></ul>
+<p class="refs">对应讲义　<a href="#s8">⑧</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>一格一格填（pos = 0 ~ n*n-1）；每格从 1 试到 n；行列都没出现过才填；回来后撤销。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+static int sq[4][4], N, total;
+
+static int ok(int row, int col, int v)
+{
+    int k;
+    for (k = 0; k &lt; col; k++) if (sq[row][k] == v) return 0;   /* 这一行前面 */
+    for (k = 0; k &lt; row; k++) if (sq[k][col] == v) return 0;   /* 这一列上面 */
+    return 1;
+}
+
+static void fill(int pos)
+{
+    int row = pos / N, col = pos % N, v, i, j;
+    if (pos == N * N) {                       /* 填满了：输出一个 */
+        for (i = 0; i &lt; N; i++) {
+            for (j = 0; j &lt; N; j++) printf(j ? " %d" : "%d", sq[i][j]);
+            printf("\n");
+        }
+        printf("\n");
+        total++;
+        return;
+    }
+    for (v = 1; v &lt;= N; v++)
+        if (ok(row, col, v)) {
+            sq[row][col] = v;
+            fill(pos + 1);
+            sq[row][col] = 0;                 /* 撤销，试下一个值 */
+        }
+}
+
+void latin(int n)
+{
+    N = n;
+    total = 0;
+    fill(0);
+    printf("共 %d 个\n", total);
+}
+
+int main(void)
+{
+    int n;
+    scanf("%d", &amp;n);
+    latin(n);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>3</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>1 2 3
+2 3 1
+3 1 2
+
+1 2 3
+3 1 2
+2 3 1
+
+⋯（共 49 行，中间省略）
+1 3 2
+
+共 12 个</pre></div>
+</div></div>
+</section>
+<section class="recall" id="recall">
+<h2>开始之前，先回想一下</h2>
+<p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
+<p class="q"><code>void f(int x) { x = 10; }</code>，a = 3 时调用 <code>f(a);</code> 之后 a → <span class="a" tabindex="0">3（函数改的是复制品）</span><span class="src">环09 ③</span></p>
+<p class="q">函数里的 static 局部变量初始化几次 → <span class="a" tabindex="0">一次</span><span class="src">环09 细5</span></p>
+<p class="q"><code>'0' + 7</code> 是哪个字符 → <span class="a" tabindex="0">'7'</span><span class="src">环02 细2</span></p>
+<p class="q"><code>if (n = 1)</code> 这个条件 → <span class="a" tabindex="0">是赋值，永远为真</span><span class="src">环03 细5</span></p>
+<p class="q"><code>2 + 3 &lt;&lt; 1</code> → <span class="a" tabindex="0">10（+ 比 &lt;&lt; 先算）</span><span class="src">环02 细8</span></p>
+</section>
+<div class="part" id="p1">
+<h2>编程题怎么写</h2>
+<p>写递归先写基例，再写「怎么用小一号的答案拼出这一号的答案」。</p>
+</div>
+<section class="sec" id="gu" data-short="骨架">
+<h3><span class="t">通用骨架</span></h3>
+<div class="code"><pre><code class="c">类型 f(规模 n)
+{
+    if (基例) return 直接给出的答案;      // 先写这一句
+    return 用 f(更小的 n) 拼出答案;       // 规模必须变小
+}</code></pre></div>
+</section>
+<section class="sec" id="s1" data-short="① 基例 + 规模变小">
+<h3><span class="no">①</span><span class="t">递归两件事：基例、规模变小</span></h3>
+<div class="code"><pre><code class="c">int sum_to(int n)
+{
+    if (n == 0) return 0;              // 基例
+    return n + sum_to(n - 1);          // 规模变小
+}</code></pre></div>
+<p><code>sum_to(3)</code> = 3 + sum_to(2) = 3 + 2 + sum_to(1) = 3 + 2 + 1 + sum_to(0) = <span class="a" tabindex="0">6</span>。</p>
+<p>没有基例，或者规模不变小（比如 <code>return f(n);</code>），就会无限调用下去，最后程序崩溃。</p>
+</section>
+<section class="sec" id="s2" data-short="② 每一层都是新的">
+<h3><span class="no">②</span><span class="t">每一层是一次新的调用</span></h3>
+<p>每次调用都有<b>自己的</b> n 和局部变量，互不影响。sum_to(3) 的过程：</p>
+<div class="code"><pre class="o">进入 n=3 → 进入 n=2 → 进入 n=1 → 进入 n=0
+                                  n=0 返回 0
+                      n=1 返回 1 + 0 = 1
+          n=2 返回 2 + 1 = 3
+n=3 返回 3 + 3 = 6</pre></div>
+<p>一层层下去，到基例后再一层层回来。读递归程序就画这张表。</p>
+</section>
+<section class="sec" id="s3" data-short="③ 打印在前还是在后">
+<h3><span class="no">③</span><span class="t">打印写在递归前面还是后面</span></h3>
+<div class="pair"><div><div class="lab">先打印再递归</div><div class="code"><pre><code class="c">void down(int n)
+{
+    if (n == 0) return;
+    printf("%d ", n);
+    down(n - 1);
+}</code></pre></div></div><div><div class="lab">先递归再打印</div><div class="code"><pre><code class="c">void up(int n)
+{
+    if (n == 0) return;
+    up(n - 1);
+    printf("%d ", n);
+}</code></pre></div></div></div>
+<p><code>down(4)</code> 输出 <span class="a" tabindex="0">4 3 2 1</span>，<code>up(4)</code> 输出 <span class="a" tabindex="0">1 2 3 4</span>。</p>
+<p>左边是「往下走的时候打印」；右边是「先一路走到底，回来的时候才打印」，所以顺序反过来了。</p>
+</section>
+<section class="sec" id="s4" data-short="④ 高位先输出">
+<h3><span class="no">④</span><span class="t">整数从高位往低位输出</span></h3>
+<p>拆位（环02 ①）出来的顺序是个位在前。想让高位在前，就用 ③ 的右边那种：<b>先递归处理 n / 10（前面那几位），再输出 n % 10（个位）</b>。</p>
+<p>483：先处理 48（它又会先处理 4、再输出 8），最后输出 3。所以输出 <span class="a" tabindex="0">483</span>，不用数组倒序。</p>
+<p>数字变成字符输出，要写 <code>'0' + n % 10</code>（回顾里那道）。</p>
+</section>
+<section class="sec" id="s5" data-short="⑤ 逆推">
+<h3><span class="no">⑤</span><span class="t">逆推：从最后一天往前推</span></h3>
+<p>猴子吃桃：每天吃一半再多吃一个，第 10 天早上只剩 1 个。</p>
+<p>先写出「今天」和「明天」的关系：今天吃完剩下的就是明天的，明天 = 今天 / 2 − 1，所以 今天 = <span class="a" tabindex="0">(明天 + 1) × 2</span>。</p>
+<p>基例是第 10 天，答案 1。peach(day) 就是用 peach(day + 1) 算出来的。写完核对：第 1 天是 <span class="a" tabindex="0">1534</span> 个。</p>
+<p class="mute small">这里规模「变小」的方向是 day 变大，往第 10 天靠，一样能停下来。</p>
+</section>
+<section class="sec" id="s6" data-short="⑥ Hanoi 塔">
+<h3><span class="no">⑥</span><span class="t">调用自己两次：Hanoi 塔</span></h3>
+<p>n 个盘从 A 借 B 移到 C，三步：上面 n − 1 个先挪到 B；最大的从 A 移到 C；B 上的 n − 1 个再挪到 C。</p>
+<div class="code"><pre><code class="c">void hanoi(int n, char from, char via, char to)
+{
+    if (n == 1) { printf("%c-&gt;%c ", from, to); return; }
+    hanoi(n - 1, from, to, via);
+    printf("%c-&gt;%c ", from, to);
+    hanoi(n - 1, via, from, to);
+}</code></pre></div>
+<p>n = 3 一共 <span class="a" tabindex="0">7</span> 步（2ⁿ − 1），第一步是 <span class="a" tabindex="0">A-&gt;C</span>。</p>
+</section>
+<section class="sec" id="s7" data-short="⑦ 两个基例">
+<h3><span class="no">⑦</span><span class="t">用到前两项：要写两个基例</span></h3>
+<p>Fibonacci：f(n) = f(n−1) + f(n−2)，f(1) = f(2) = 1。f(7) = <span class="a" tabindex="0">13</span>。</p>
+<p>公式里用到 n − 1 和 n − 2 两项，基例就要写两个。只写 f(1)，算 f(2) 时会去算 f(0)、f(−1)……停不下来。</p>
+<p>勒让德多项式也是这样：P₀ = 1，P₁ = x，Pₙ = ((2n − 1)·x·Pₙ₋₁ − (n − 1)·Pₙ₋₂) / n。注意最后除以 n 要是小数除法（环01 ①）。</p>
+</section>
+<section class="sec" id="s8" data-short="⑧ 回溯">
+<h3><span class="no">⑧</span><span class="t">回溯：一格一格试，不行就撤回</span></h3>
+<p>拉丁方阵：每行、每列都是 1 到 n 且不重复。按格子编号 pos 一格一格填：</p>
+<div class="code"><pre><code class="c">void fill(int pos)                       // pos 是第几格，0 到 n*n-1
+{
+    if (pos == n * n) { 输出整个方阵; return; }
+    row = pos / n;  col = pos % n;
+    for (v = 1; v &lt;= n; v++)
+        if (v 在这一行、这一列都没出现过) {
+            a[row][col] = v;
+            fill(pos + 1);               // 填下一格
+            a[row][col] = 0;             // 撤回，试下一个 v
+        }
+}</code></pre></div>
+<p><code>row = pos / n; col = pos % n;</code> 又是环01 的整除和取余：n = 3 时第 5 格在第 <span class="a" tabindex="0">1</span> 行第 <span class="a" tabindex="0">2</span> 列（从 0 数）。</p>
+<p class="fix">学长的参考程序每层都从第 0 列重新扫，会重复搜索，结构有误，不要照抄。</p>
+</section>
+<div class="part" id="p2">
+<h2>预处理</h2>
+<p>以 # 开头的行都是预处理命令。读程序题里，宏展开是最常考的。</p>
+</div>
+<section class="sec" id="d1" data-short="细1 #define 常量">
+<h3><span class="no">细1</span><span class="t">#define：编译前原样替换</span></h3>
+<p><code>#define N 5</code> 的意思是：编译之前，把程序里的 N <b>原样换成</b> 5。宏名习惯大写。</p>
+<p>它不是变量，不占内存，也不能被赋值：<span class="trap"><code>N = 6;</code></span> 替换后是 <code>5 = 6;</code>。</p>
+<p><span class="trap"><code>#define N 5;</code></span> 多了分号：<code>int a[N];</code> 会变成 <code>int a[5;];</code>，编译错误。</p>
+<p>字符串里的不替换：<code>"N"</code> 还是 "N"。</p>
+</section>
+<section class="sec" id="d2" data-short="细2 宏要加括号">
+<h3><span class="no">细2</span><span class="t">带参数的宏：先原样展开，再算</span></h3>
+<p>宏只做文字替换，<b>不会先把参数算出来</b>。做法：把参数原样抄进去，再按优先级算：</p>
+<div class="calc">
+  <span>#define SQ1(x) x * x 时 SQ1(1 + 2)</span><span class="arrow">→</span><span><span class="a" tabindex="0">5</span> <span class="note">展开成 1 + 2 * 1 + 2</span></span>
+  <span>#define SQ2(x) ((x) * (x)) 时 SQ2(1 + 2)</span><span class="arrow">→</span><span><span class="a" tabindex="0">9</span></span>
+</div>
+<div class="code"><pre><code class="c">#define CANBERRA(x, y) ((x - y) / (x + y))
+CANBERRA(1.0 + 2.0, 0.0 + 2.0)</code></pre></div>
+<p>展开成 <code>((1.0 + 2.0 - 0.0 + 2.0) / (1.0 + 2.0 + 0.0 + 2.0))</code>，值是 <span class="a" tabindex="0">1.0</span>。</p>
+<p>宏名和左括号之间不能有空格：<code>#define SQ (x) x*x</code> 会变成「把 SQ 换成 (x) x*x」。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">上面 CANBERRA 那段 → <span class="a" tabindex="0">1.0</span><span class="src">真选34·北航2018</span></p>
+<p class="q"><code>#define N 2</code>、<code>#define y(n) ((N+1)*n)</code>，<code>z = 4 * (N + y(5));</code> → <span class="a" tabindex="0">68</span><span class="src">真选40·中财2018</span></p>
+</div>
+</section>
+<section class="sec" id="d3" data-short="细3 宏和函数">
+<h3><span class="no">细3</span><span class="t">宏和函数的区别</span></h3>
+<ul><li>宏在<b>编译前</b>展开；函数在<b>运行时</b>调用。</li><li>宏不检查类型；函数的参数有类型。</li><li>宏的参数<b>不先求值</b>，原样替换；函数先把实参算出来再传。</li></ul>
+</section>
+<section class="sec" id="d4" data-short="细4 宏参数里的 ++">
+<h3><span class="no">细4</span><span class="t">宏的参数里有 ++，可能被算两次</span></h3>
+<div class="code"><pre><code class="c">#define MAX(a, b) ((a) &gt; (b) ? (a) : (b))
+i = 5; j = 3;
+m = MAX(i++, j);       // 展开：((i++) &gt; (j) ? (i++) : (j))</code></pre></div>
+<p>m = <span class="a" tabindex="0">6</span>，i = <span class="a" tabindex="0">7</span>：<code>i++</code> 在条件里算了一次，选中以后又算了一次。函数就不会这样。</p>
+</section>
+<section class="sec" id="d5" data-short="细5 #include">
+<h3><span class="no">细5</span><span class="t">#include 的两种写法</span></h3>
+<ul><li><code>#include &lt;文件&gt;</code>：先去系统目录找。标准库用这种。</li><li><code>#include "文件"</code>：先在当前目录找，找不到再去系统目录。自己写的头文件用这种。</li></ul>
+<p><code>#include</code> 也是预处理命令，末尾同样没有分号（环01 细13）。</p>
+</section>
+<section class="sec" id="d6" data-short="细6 条件编译">
+<h3><span class="no">细6</span><span class="t">条件编译：条件为假的代码不编译</span></h3>
+<p><code>#if 条件 … #endif</code>：条件为假，中间的代码根本不参与编译。<code>#if 0 … #endif</code> 常用来临时屏蔽一段代码。</p>
+<p><code>#ifdef 宏名</code> / <code>#ifndef 宏名</code>：这个宏定义过（没定义过）才编译。头文件开头常用 <code>#ifndef</code> 防止被重复包含。</p>
+</section>
+<section class="sec" id="d7" data-short="细7 预处理在编译前">
+<h3><span class="no">细7</span><span class="t">预处理在编译之前</span></h3>
+<p>预处理由预处理器在<b>编译之前</b>完成，不是在程序运行时。以 # 开头的行才是预处理命令。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">「对预处理命令行的处理是在程序执行过程中进行的」 → <span class="a" tabindex="0">错</span><span class="src">真选39·中财2018</span></p>
+</div>
+<p class="mute small">这道题原书的 C 选项把 #include 叫作「宏定义命令行」，说法本身也不准确。</p>
+</section>
+<section class="sec" id="d8" data-short="细8 递归里的 if (n = 1)">
+<h3><span class="no">细8</span><span class="t">递归改错：if (n = 1)</span></h3>
+<p>题3 的原程序有两处错：</p>
+<ul><li><code>fun(n)</code> 没写返回类型和形参类型，要改成 <code>int fun(int n)</code>；</li><li><code>if (n = 1)</code> 是赋值，永远为真，<b>基例永远成立</b>，要改成 <code>if (n == 1)</code>。</li></ul>
+<p>改对之后，fun(1) = 10，fun(n) = fun(n − 1) + 2，fun(5) = <span class="a" tabindex="0">18</span>。</p>
+</section>
+<section class="sec" id="d9" data-short="细9 读递归程序">
+<h3><span class="no">细9</span><span class="t">读递归程序：画「层 / 参数 / 返回值」表</span></h3>
+<div class="code"><pre><code class="c">int f(int n) { if (n &lt;= 1) return 1; return n * f(n - 2); }</code></pre></div>
+<p>f(7)：往下 7 → 5 → 3 → 1（基例返回 1），往回 3×1 = 3 → 5×3 = 15 → 7×15 = <span class="a" tabindex="0">105</span>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">递归加逆序输出的读程序题，就是 ③ 的「先递归再打印」<span class="src">川师卷2016-17 三-4</span></p>
+</div>
+</section>
+    <div class="end">
+      <nav class="ringnav"><a href="r09.html"><small>← 上一环</small>环09 函数与指针参数</a><a href="index.html"><small>目录</small>全部 13 环</a><a href="r11.html"><small>下一环 →</small>环11 用指针处理数组和字符串</a></nav>
+    </div>
+
+  </main>
+</div>
+<div class="fab" id="fab"><button type="button" class="m" id="fab-toc" aria-label="打开目录">目录</button><button type="button" id="fab-top" aria-label="回到顶部">↑</button></div>
+<div class="drawer" id="drawer"><div class="shade"></div><div class="panel"><nav class="toc" id="toc-d" aria-label="目录"></nav></div></div>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var ring = root.getAttribute("data-ring");             // 目录页没有
+  var secs = Array.prototype.slice.call(document.querySelectorAll(".recall, .sec"));
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function label(s) {
+    if (s.classList.contains("recall")) return "开始之前";
+    return s.dataset.short || "";
+  }
+
+  /* 图标：Lucide（github.com/lucide-icons/lucide，ISC 许可），24×24 线条图标，内联才能离线用 */
+  var IC = {
+    code: '<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>',
+    bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    left: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    term: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + "</svg>"; }
+
+  /* 给各种块加图标、给代码块加标题栏 */
+  var PART_IC = { p1: "code", p2: "bulb", rings: "layers", base: "repeat", cover: "book", how: "compass" };
+  var parts = document.querySelectorAll(".part");
+  parts.forEach(function (p, i) {
+    var sp = document.createElement("span");
+    sp.className = "pic"; sp.innerHTML = ic(PART_IC[p.id] || (i ? "bulb" : "code"));
+    p.insertBefore(sp, p.firstChild);
+  });
+  document.querySelectorAll(".exam > p:first-child").forEach(function (p) { p.innerHTML = ic("target") + p.innerHTML; });
+  document.querySelectorAll(".fix").forEach(function (f) {
+    var t = document.createElement("span"); t.className = "ft"; t.innerHTML = ic("alert") + "注意";
+    f.insertBefore(t, f.firstChild);
+  });
+  document.querySelectorAll(".recall h2").forEach(function (h) { h.innerHTML = ic("history") + h.innerHTML; });
+  document.querySelectorAll(".code").forEach(function (box) {
+    var hd = document.createElement("div"), isOut = !!box.querySelector("pre.o");
+    hd.className = "hd";
+    hd.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' + (isOut ? ic("term") + "输出" : ic("code") + (box.dataset.label || "C"));
+    box.insertBefore(hd, box.firstChild);
+  });
+  /* 第二部分（细节）的节，目录高亮用紫色 */
+  var inP2 = false;
+  document.querySelectorAll(".part, .sec").forEach(function (el) {
+    if (el.classList.contains("part")) { inP2 = el !== parts[0]; return; }
+    if (inP2) el.classList.add("p2");
+  });
+
+  /* 目录：大部分做小标题，每一节一行 */
+  function buildToc(nav, withHome) {
+    if (!nav) return;
+    var h = "";
+    if (withHome && ring) h += '<a class="home" href="' + root.getAttribute("data-home") + '">' + ic("left") + "全部 13 环</a>";
+    document.querySelectorAll(".recall, .part, .sec").forEach(function (s) {
+      if (s.classList.contains("part")) h += "<p>" + s.querySelector("h2").textContent + "</p>";
+      else if (label(s)) h += '<a href="#' + s.id + '" data-id="' + s.id + '"' + (s.classList.contains("p2") ? ' class="p2"' : "") + ">" + label(s) + "</a>";
+    });
+    nav.innerHTML = h;
+  }
+  buildToc(document.getElementById("toc"), true);
+  buildToc(document.getElementById("toc-m"), false);
+  buildToc(document.getElementById("toc-d"), true);
+  document.querySelectorAll("#toc-m a").forEach(function (a) {
+    a.addEventListener("click", function () { a.closest("details").open = false; });
+  });
+
+  /* 空：点一下揭开 */
+  function hidden() { return root.classList.contains("hide"); }
+  document.querySelectorAll(".a").forEach(function (a) {
+    function flip() { if (hidden()) { a.classList.toggle("on"); syncSec(a.closest(".sec, .recall")); } }
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "点开看答案");
+    a.addEventListener("click", flip);
+    a.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+  document.querySelectorAll(".oa").forEach(function (o) {
+    function flip() { if (hidden()) { o.classList.toggle("on"); syncSec(o.closest(".sec, .recall")); } }
+    o.addEventListener("click", function (e) { if (!e.target.closest(".copy")) flip(); });
+    o.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); flip(); } });
+  });
+
+  /* 每节一个「本节答案」：一次揭开这一节的全部空 */
+  function blanks(s) { return s ? s.querySelectorAll(".a, .oa") : []; }
+  function syncSec(s) {
+    if (!s || !s._btn) return;
+    var all = blanks(s), open = 0;
+    for (var i = 0; i < all.length; i++) if (all[i].classList.contains("on")) open++;
+    var allOpen = open === all.length;
+    s._btn.dataset.open = allOpen ? "1" : "";
+    s._btn.innerHTML = allOpen ? ic("eyeoff") + "盖上本节" : ic("eye") + "本节答案";
+    s._btn.hidden = !hidden();
+  }
+  secs.forEach(function (s) {
+    var head = s.querySelector("h3, h2");
+    if (!head || !blanks(s).length) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "secbtn";
+    b.addEventListener("click", function () {
+      var all = blanks(s), allOpen = b.dataset.open === "1";
+      for (var i = 0; i < all.length; i++) all[i].classList.toggle("on", !allOpen);
+      syncSec(s);
+    });
+    head.appendChild(b);
+    s._btn = b;
+    syncSec(s);
+  });
+
+  /* 全部揭开 / 盖上 */
+  /* 每道题的完整程序：点一下展开 / 收起 */
+  document.querySelectorAll(".prog-btn").forEach(function (b) {
+    b.innerHTML = ic("code") + "完整程序";
+    b.addEventListener("click", function () {
+      var on = b.parentNode.classList.toggle("on");
+      b.setAttribute("aria-expanded", on ? "true" : "false");
+      b.innerHTML = ic("code") + (on ? "收起程序" : "完整程序");
+    });
+  });
+  var btn = document.getElementById("toggle");
+  function toggleAll() {
+    if (!btn) return;
+    var h = root.classList.toggle("hide");
+    document.querySelectorAll(".a.on, .oa.on, .prog.on").forEach(function (a) { a.classList.remove("on"); });
+    document.querySelectorAll(".prog-btn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.innerHTML = ic("code") + "完整程序"; });
+    btn.innerHTML = h ? ic("eye") + "全部揭开" : ic("eyeoff") + "全部盖上";
+    btn.setAttribute("aria-pressed", h ? "false" : "true");
+    secs.forEach(syncSec);
+  }
+  if (btn) { btn.innerHTML = ic("eye") + "全部揭开"; btn.addEventListener("click", toggleAll); }
+
+  /* 当前读到哪一节：目录高亮，并记下来，下次打开可以接着读 */
+  var current = null;
+  function setCurrent(s) {
+    if (current === s) return;
+    current = s;
+    document.querySelectorAll(".toc a[data-id]").forEach(function (a) { a.classList.toggle("cur", a.dataset.id === s.id); });
+    if (ring) {
+      save("c-lesson-pos-" + ring, s.id);
+      save("c-lesson-last", { ring: ring, name: root.getAttribute("data-name"), sec: label(s) });
+    }
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target); });
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 上次读到哪：给一个「继续」 */
+  var resume = document.getElementById("resume");
+  if (resume && ring && !location.hash) {
+    var pos = load("c-lesson-pos-" + ring), target = pos && document.getElementById(pos);
+    if (target && secs.indexOf(target) > 1) {
+      resume.innerHTML = '<span>上次读到</span><a href="#' + pos + '">' + label(target) + ' →</a><button type="button">不用了</button>';
+      resume.classList.add("on");
+      resume.querySelector("a").addEventListener("click", function () { resume.classList.remove("on"); });
+      resume.querySelector("button").addEventListener("click", function () { resume.classList.remove("on"); });
+    }
+  }
+  /* 目录页：标出上次看的那一环 */
+  if (!ring) {
+    var last = load("c-lesson-last");
+    if (last && last.ring) {
+      var li = document.querySelector('.rings li[data-ring="' + last.ring + '"]');
+      if (li) {
+        li.classList.add("last");
+        if (last.sec) {
+          var p = document.createElement("p");
+          p.textContent = "上次读到：" + last.sec;
+          p.style.color = "var(--green)";
+          li.appendChild(p);
+        }
+      }
+    }
+  }
+
+  /* 阅读进度条、浮动按钮 */
+  var bar = document.getElementById("progress"), fab = document.getElementById("fab"), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + "%";
+    if (fab) fab.classList.toggle("on", window.scrollY > 500);
+    ticking = false;
+  }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+  var drawer = document.getElementById("drawer");
+  function closeDrawer() { if (drawer) drawer.classList.remove("on"); }
+  var top = document.getElementById("fab-top");
+  if (top) top.innerHTML = ic("up");
+  if (document.getElementById("fab-toc")) document.getElementById("fab-toc").innerHTML = ic("list");
+  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+  var ft = document.getElementById("fab-toc");
+  if (ft) ft.addEventListener("click", function () {
+    drawer.classList.add("on");
+    var cur = drawer.querySelector("a.cur");
+    if (cur) cur.scrollIntoView({ block: "center" });
+  });
+  if (drawer) {
+    drawer.querySelector(".shade").addEventListener("click", closeDrawer);
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeDrawer); });
+  }
+
+  /* 键盘：J 下一节，K 上一节，A 全部揭开 / 盖上，Esc 关目录 */
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "Escape") { closeDrawer(); return; }
+    var k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && secs.length) {
+      var i = current ? secs.indexOf(current) : -1;
+      var n = secs[Math.max(0, Math.min(secs.length - 1, i + (k === "j" ? 1 : -1)))];
+      if (n) { n.scrollIntoView({ behavior: "instant", block: "start" }); setCurrent(n); }
+    } else if (k === "a" && btn) {
+      toggleAll();
+    }
+  });
+
+  /* C 代码着色 */
+  var KW = /^(int|double|float|char|long|short|unsigned|signed|void|return|for|while|do|if|else|switch|case|break|continue|sizeof|struct|union|enum|typedef|static|extern|register|auto|const|default|goto|FILE|NULL|EOF)$/;
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(src) {
+    var out = "", re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|(\b\d+(?:\.\d*)?(?:[eE][-+]?\d+)?[fFlL]?\b)|([A-Za-z_]\w*)/gm, m, last = 0;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) out += '<span class="t-com">' + esc(t) + "</span>";
+      else if (m[2]) out += '<span class="t-str">' + esc(t) + "</span>";
+      else if (m[3]) out += '<span class="t-pre">' + esc(t) + "</span>";
+      else if (m[4]) out += '<span class="t-num">' + esc(t) + "</span>";
+      else if (KW.test(t)) out += '<span class="t-kw">' + t + "</span>";
+      else out += esc(t);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll("pre code.c").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  /* 复制：方便贴进 草稿.c 自己跑 */
+  document.querySelectorAll(".code").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.innerHTML = ic("copy") + "复制";
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      function done(msg) { b.innerHTML = ic("check") + msg; setTimeout(function () { b.innerHTML = ic("copy") + "复制"; }, 1400); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        done("已选中，按 Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(pre.textContent).then(function () { done("已复制"); }, fallback); }
+      catch (err) { fallback(); }
+    });
+    (box.querySelector(".hd") || box).appendChild(b);
+  });
+})();
+</script>

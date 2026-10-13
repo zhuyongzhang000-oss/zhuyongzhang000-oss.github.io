@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
+<title>环03 素数因子讲义</title>
+<meta name="description" content="C 语言环03：试除法判素数、因子与完数、辗转相除、筛法，以及关系与逻辑运算、短路、优先级、if 配对、条件运算符、循环次数、break/continue。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版式：布面唱片封面。七种中明度布色轮换（石板蓝、赭黄、鼠尾草、灰粉、青绿、薰衣草、暖灰），
+   每一环的页头是一块圆角布面，正文是一张安静的纸。字距拉开的人文无衬线，留白多，字像压印在布上。 */
+:root {
+  /* 纸和墨 */
+  --desk: #d9d4ca;  --paper: #f5f2eb;  --tint: #ece7dd;
+  --text: #2e302b;  --sub: #6b6960;  --faint: #8f8b80;  --rule: #ddd6c8;
+  --code-bg: #ebe6dc;
+  --r: 16px;  --r-s: 10px;   /* 圆角 */
+  --pen: #b5482a;           /* 答案：红笔 */
+  --tok-kw: #3d5462;  --tok-str: #a8502c;  --tok-num: #8f6510;  --tok-com: #8f8a7c;  --tok-pre: #7d5a3c;
+  /* Atkinson Hyperlegible：0 带斜线、1 l I 分得开，数字是等高的 */
+  --f-latin: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+           repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+    --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+    --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+  --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+  --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+  color-scheme: dark;
+}
+/* 七块布：布色 / 布上标题 / 布上正文 / 纸上强调色（浅、深两种模式） */
+:root, [data-tone="a"] { --cloth: #56707f; --ink: #f4b788; --soft: #f1f1ec; --acc-l: #a5592c; --acc-d: #e8a06c; }
+[data-tone="b"] { --cloth: #cda85a; --ink: #8e361b; --soft: #3a2712; --acc-l: #a34622; --acc-d: #e8895f; }
+[data-tone="c"] { --cloth: #97a68a; --ink: #36294a; --soft: #232a1f; --acc-l: #55703f; --acc-d: #b3c79f; }
+[data-tone="d"] { --cloth: #cfa194; --ink: #5a2632; --soft: #3a1f24; --acc-l: #a24a4f; --acc-d: #ec9aa0; }
+[data-tone="e"] { --cloth: #477774; --ink: #f5d89e; --soft: #f1f3ee; --acc-l: #2c706c; --acc-d: #8cc7c0; }
+[data-tone="f"] { --cloth: #a7a1c0; --ink: #2c2752; --soft: #221f38; --acc-l: #5c5397; --acc-d: #b7afe0; }
+[data-tone="g"] { --cloth: #6e6c63; --ink: #f2c565; --soft: #f5f0e4; --acc-l: #8a610c; --acc-d: #e2a129; }
+:root, [data-tone] { --acc: var(--acc-l); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]), :root:not([data-theme="light"]) [data-tone] { --acc: var(--acc-d); } }
+:root[data-theme="dark"], :root[data-theme="dark"] [data-tone] { --acc: var(--acc-d); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; color: var(--text); font: 17px/1.9 var(--f-body); -webkit-text-size-adjust: 100%; font-variant-numeric: lining-nums;
+  background: var(--desk); background-image: var(--linen); }
+a { color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+b, strong { font-weight: 700; }
+code, pre { font-family: var(--f-code); font-size: .84em; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+:not(pre) > code { background: var(--tint); padding: .08em .4em; border-radius: 5px; white-space: pre-wrap;
+  display: inline-block; max-width: 100%; line-height: 1.55; vertical-align: baseline; }
+::selection { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+:focus-visible { outline: 1.5px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+.ic { width: 1em; height: 1em; flex: none; vertical-align: -.12em; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+#progress { position: fixed; left: 0; top: env(safe-area-inset-top, 0px); height: 2px; width: 0; z-index: 30;
+  background: var(--acc); transition: width .1s linear; }
+
+/* 布局：左边一列目录，右边一张纸 */
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 28px; padding-block: 40px 110px;
+  display: grid; grid-template-columns: 190px minmax(0, 790px); justify-content: center; gap: 48px; }
+main { min-width: 0; max-width: 790px; background: var(--paper); padding: 0 72px 64px; border-radius: var(--r); overflow: clip;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -24px rgba(0,0,0,.35); }
+
+/* 目录 */
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start;
+  max-height: calc(100vh - 56px); overflow-y: auto; padding-block: 4px 24px; font-size: 14px; line-height: 1.55; scrollbar-width: thin; }
+.toc .home { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--sub); text-decoration: none;
+  font: 15px/1 var(--f-latin); letter-spacing: .12em; }
+.toc .home:hover { color: var(--acc); }
+.toc p { margin: 22px 0 6px; color: var(--faint); font-size: 12px; letter-spacing: .16em; }
+.toc > p:first-child, .toc .home + p { margin-top: 0; }
+.toc a { display: block; padding: 3px 0 3px 12px; border-left: 1.5px solid transparent; color: var(--sub); text-decoration: none; transition: color .2s, border-color .2s; }
+.toc a:hover { color: var(--text); }
+.toc a.cur { color: var(--acc); border-left-color: var(--acc); }
+.toc-m { display: none; }
+
+/* 页头：一张布面封面 */
+header { margin: 0 -72px; padding: 76px 72px 52px; color: var(--ink);
+  background: var(--cloth); background-image: var(--linen); position: relative; }
+.kicker { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  font: 500 15px/1.4 var(--f-latin); letter-spacing: .16em; opacity: .9; }
+.kicker a { color: inherit; text-decoration: none; }
+.kicker a:hover { text-decoration: underline; }
+.chip { font: inherit; letter-spacing: .2em; }
+h1 { font-weight: 400; font-size: clamp(30px, 5vw, 42px); line-height: 1.35; margin: 64px 0 22px; letter-spacing: .14em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 -1px 0 rgba(255,255,255,.06); text-wrap: balance; }
+.intro p { margin: 0 0 8px; color: var(--soft); font-size: 15.5px; line-height: 1.85; max-width: 38em; opacity: .92; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 28px; font-size: 14px;
+  color: var(--soft); }
+header :not(pre) > code { background: color-mix(in srgb, var(--soft) 16%, transparent); color: var(--soft); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-body); letter-spacing: .08em; color: var(--ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; padding: 10px 20px; cursor: pointer;
+  transition: background .2s; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--cloth); }
+.resume { display: none; margin-top: 20px; padding: 12px 0 0; font-size: 14.5px; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+.resume.on { display: flex; }
+.resume a { color: var(--ink); font-weight: 600; }
+.resume button { margin-left: auto; font: inherit; font-size: 13px; color: inherit; background: none; border: 0; cursor: pointer; opacity: .8; }
+
+/* 两大部分 */
+.part { margin-top: 84px; }
+.part .pic { display: none; }
+.part h2 { font-weight: 400; font-size: 25px; line-height: 1.4; margin: 0; letter-spacing: .14em; color: var(--acc); }
+.part h2::before { content: ""; display: block; width: 28px; height: 1.5px; background: var(--acc); margin-bottom: 18px; }
+.part > p { margin: 8px 0 0; color: var(--sub); font-size: 15.5px; }
+
+/* 每一节 */
+.sec { padding-top: 56px; scroll-margin-top: 20px; }
+.part + .sec { padding-top: 26px; }
+.sec h3 { font-weight: 500; font-size: 20px; line-height: 1.5; margin: 0 0 14px; letter-spacing: .04em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 14px; }
+.sec h3 .no { flex: none; font: 500 16px/1 var(--f-latin); color: var(--acc); letter-spacing: .08em; min-width: 1.4em; }
+.sec h3 .t { flex: 1; min-width: 0; }
+.secbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 13px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 4px 0; cursor: pointer; transition: color .2s, border-color .2s; white-space: nowrap; }
+.secbtn:hover { color: var(--acc); border-bottom-color: var(--acc); }
+.secbtn[hidden] { display: none; }
+.sec p { margin: 14px 0; }
+.sec ul { margin: 14px 0; padding-left: 1.2em; }
+.sec li { margin: 8px 0; }
+.sec li::marker { color: var(--acc); }
+.mute { color: var(--sub); }
+.small { font-size: 14.5px; }
+mark { background: color-mix(in srgb, var(--ink) 25%, transparent); color: inherit; padding: 0 .15em; }
+
+/* 空：一段虚线，点开后红笔写上 */
+.a { color: var(--pen); font-weight: 600; }
+.hide .a:not(.on) { color: transparent !important; cursor: pointer; user-select: none; border-radius: 4px 4px 0 0;
+  display: inline-block; width: 3.4em; height: 1.3em; overflow: hidden; white-space: nowrap; vertical-align: -0.24em;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--acc) 70%, transparent); transition: background .2s; }
+.hide .a:not(.on):hover { background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.hide .a:not(.on) * { visibility: hidden; }
+.a.on, .wrap:not(.hide) .a { animation: ink .4s ease-out; }
+.a code { color: inherit; background: transparent; padding: 0; }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+
+.trap { text-decoration: underline wavy var(--pen); text-decoration-thickness: 1.2px; text-underline-offset: 4px; }
+
+/* 代码 */
+.code { position: relative; margin: 20px 0; background: var(--code-bg); border-radius: var(--r-s); }
+.code .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0 20px; font: 12px/1 var(--f-latin); letter-spacing: .2em; color: var(--faint); }
+.code .hd > .ic, .code .dots { display: none; }
+.code pre { margin: 0; padding: 8px 20px 16px; overflow-x: auto; line-height: 1.75; font-size: 14px; }
+.copy { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-transform: none; }
+.copy:hover { color: var(--acc); }
+.t-kw { color: var(--tok-kw); font-weight: 600; }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-com { color: var(--tok-com); font-style: italic; }
+.t-pre { color: var(--tok-pre); }
+pre.o { font-family: var(--f-code); color: var(--sub); }
+
+.hide .oa:not(.on) { cursor: pointer; }
+.hide .oa:not(.on) pre { color: transparent; user-select: none; background-image: var(--linen); }
+.hide .oa:not(.on)::after { content: "先在纸上画出来，再点一下看输出"; position: absolute; left: 20px; top: 42px;
+  font: 14px/1.4 var(--f-body); color: var(--sub); letter-spacing: .04em; }
+.hide .oa:not(.on) .copy { visibility: hidden; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.pair .code { margin: 0; }
+.pair .lab { font-size: 13px; color: var(--acc); letter-spacing: .1em; margin-bottom: 6px; }
+
+/* 写法 → 结果 */
+.calc { display: grid; grid-template-columns: fit-content(55%) max-content minmax(0, 1fr); gap: 0 18px;
+  margin: 18px 0; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.calc > * { padding: 8px 0; }
+.calc > code:not(.a) { justify-self: start; white-space: pre-wrap; margin: 6px 0; padding: .15em .5em; }
+.calc > :nth-child(3n+1) { min-width: 0; }
+.calc .arrow { color: var(--faint); font-size: 14px; }
+.calc .note { color: var(--sub); font-size: 14.5px; }
+
+.tbl { overflow-x: auto; margin: 18px 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 50%; }
+th, td { padding: 8px 22px 8px 0; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--faint); font-size: 12.5px; letter-spacing: .14em; }
+td code { white-space: nowrap; }
+
+/* 真题、注意 */
+.exam, .fix { margin: 24px 0 0; padding: 14px 20px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--acc) 7%, transparent); }
+.exam > p:first-child, .fix .ft { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12.5px; letter-spacing: .2em; color: var(--acc); }
+.q { margin: 9px 0; }
+.src { font: 13px/1 var(--f-latin); color: var(--faint); margin-left: 12px; white-space: nowrap; letter-spacing: .06em; }
+.fix { background: color-mix(in srgb, var(--pen) 7%, transparent); font-size: 15.5px; }
+.fix .ft { color: var(--pen); }
+
+.out { font-family: var(--f-code); font-size: .84em; white-space: pre; background: var(--code-bg); padding: .08em .4em; border-radius: 5px; }
+
+/* 回顾：一小块浅色布 */
+.recall { margin: 0 -72px; padding: 30px 72px 26px; scroll-margin-top: 20px; background: var(--tint); }
+.recall h2 { font-weight: 500; font-size: 15px; letter-spacing: .2em; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--acc); }
+.recall h2 .secbtn { margin-left: auto; }
+.recall > p { margin: 0 0 10px; color: var(--sub); font-size: 14.5px; }
+.recall .q { margin: 8px 0; }
+.recall :not(pre) > code { background: var(--paper); }
+
+/* 结尾 */
+.end { margin-top: 84px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.end h2 { font-weight: 400; font-size: 22px; letter-spacing: .14em; color: var(--acc); margin: 0 0 8px; }
+.ringnav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; font-size: 15px; }
+.ringnav a, .ringnav span { flex: 1 1 0; min-width: 0; }
+.ringnav a { text-decoration: none; padding: 14px 18px; color: var(--text); border: 1px solid var(--rule); border-radius: var(--r-s); transition: border-color .2s, background .2s; }
+.ringnav a:hover { background: color-mix(in srgb, var(--acc) 6%, transparent); }
+.ringnav a:hover { border-color: var(--acc); }
+.ringnav a small { display: block; font: 12.5px/1.4 var(--f-latin); letter-spacing: .16em; color: var(--faint); }
+.ringnav a:nth-child(2) { text-align: center; }
+.ringnav a:last-child { text-align: right; }
+.keys { margin-top: 20px; font-size: 13px; color: var(--faint); letter-spacing: .04em; }
+.keys kbd { font: 12px/1 var(--f-code); border: 1px solid var(--rule); border-radius: 5px; padding: 2px 6px; color: var(--sub); }
+details.legend { margin-top: 26px; font-size: 14px; color: var(--sub); }
+details.legend summary { cursor: pointer; }
+details.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; margin: 10px 0 0; }
+details.legend dt { font: 13px/1.8 var(--f-latin); letter-spacing: .06em; }
+details.legend dd { margin: 0; }
+
+/* 目录页：13 张小卡，每张左边一块圆角布面色签 */
+.rings { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rings li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: center;
+  padding: 10px 14px 10px 10px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.rings li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cloth) 70%, transparent);
+  box-shadow: 0 10px 22px -16px rgba(0,0,0,.5); }
+.rings .rn { grid-row: 1 / span 3; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--cloth); background-image: var(--linen); color: var(--ink); font: 500 17px/1 var(--f-latin); letter-spacing: .08em; }
+.rings a { font-weight: 500; font-size: 16px; line-height: 1.45; letter-spacing: .06em; color: var(--text); text-decoration: none; }
+.rings a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.rings p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rings li.last { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 6%, var(--paper)); }
+.rings li.last a::before { content: "上次 · "; color: var(--acc); font-size: 13px; letter-spacing: .1em; }
+.rings li.last p:last-child { color: var(--acc) !important; }
+
+/* 浮动按钮 */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fab.on { opacity: 1; pointer-events: auto; }
+.fab button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cloth); background-image: var(--linen); color: var(--ink);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.6); cursor: pointer; display: grid; place-items: center; }
+.fab .m { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 40; display: none; }
+.drawer.on { display: block; }
+.drawer .shade { position: absolute; inset: 0; background: rgba(20, 20, 18, .45); }
+.drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(80vw, 310px); background: var(--paper); border-radius: var(--r) 0 0 var(--r);
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 24px 28px; overflow-y: auto; }
+.drawer .toc { display: block; position: static; max-height: none; padding: 0; font-size: 15px; }
+
+/* 窄于 1100（分屏、平板）：目录收进抽屉，纸张居中 */
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 790px); gap: 0; padding-inline: 24px; }
+  .wrap > .toc { display: none; }
+  .toc-m { display: block; margin-top: 22px; font-size: 15px; color: var(--ink); }
+  .toc-m summary { cursor: pointer; letter-spacing: .1em; }
+  .toc-m .toc { display: block; position: static; max-height: none; padding: 10px 0 0; columns: 2; column-gap: 24px; }
+  .toc-m .toc a { color: inherit; opacity: .85; border-left: 0; padding-left: 0; }
+  .toc-m .toc p { break-after: avoid; color: inherit; opacity: .6; }
+  .fab .m { display: grid; }
+  .keys { display: none; }
+}
+/* 手机：纸张铺满 */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 0; padding-block: 0 80px; }
+  main { padding: 0 20px 48px; box-shadow: none; border-radius: 0; }
+  header { margin: 0 -20px; padding: 48px 20px 36px; border-radius: 0 0 22px 22px; }
+  h1 { margin-top: 40px; }
+  .recall { margin: 0 -20px; padding: 24px 20px 20px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; line-height: 1.9; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .calc { grid-template-columns: minmax(0, 1fr); }
+  .calc > * { padding: 3px 0; }
+  .calc .arrow { display: none; }
+  .calc > :nth-child(3n) { padding-left: 1em; padding-bottom: 10px; }
+  .src { display: block; margin: 4px 0 0; }
+  .sec h3 { flex-wrap: wrap; }
+  .secbtn { margin-left: auto; }
+  .rings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  pre.fig { font-size: 13px; }
+  .stem { padding: 12px 14px; }
+  .ringnav a:nth-child(2) { order: 3; flex-basis: 100%; }
+}
+
+/* 5 道真题 */
+.prob { padding-top: 48px; }
+.prob h3 .no { font-weight: 700; }
+.pmeta { margin: -6px 0 12px !important; font-size: 13.5px; color: var(--faint); letter-spacing: .04em; }
+.ptag { display: inline-block; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+  color: var(--acc); background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.stem { padding: 14px 18px; border-radius: var(--r-s); background: var(--tint); }
+.stem p, .req p { margin: 6px 0 !important; }
+pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space: pre; overflow-x: auto; background: none; }
+.req { margin-top: 14px; }
+.req .lab, .io .lab { margin: 0 0 2px !important; font-size: 12.5px; letter-spacing: .16em; color: var(--faint); }
+.hints { list-style: none; padding: 0 !important; margin: 12px 0 0 !important; font-size: 15.5px; }
+.hints li { margin: 4px 0 !important; }
+.hints b { font-weight: 600; color: var(--acc); margin-right: .6em; }
+.hints b::after { content: "："; display: none; }
+.refs { margin: 10px 0 0 !important; font-size: 14px; color: var(--faint); }
+.refs a { margin-right: 6px; text-decoration: none; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.prog { margin-top: 16px; }
+.prog-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: transparent;
+  color: var(--acc); border-radius: 999px; padding: 6px 16px; font: 500 14px/1.2 var(--f-body); letter-spacing: .06em; cursor: pointer; }
+.prog-btn:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.hide .prog:not(.on) .prog-body { display: none; }
+.wrap:not(.hide) .prog-btn { display: none; }
+.prog-body { margin-top: 12px; }
+.prog-body .code { margin: 10px 0; }
+.tip { margin: 0 !important; padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; background: color-mix(in srgb, var(--pen) 7%, transparent); }
+.tip b { color: var(--pen); font-weight: 600; margin-right: .7em; }
+.io { margin: 10px 0 0; }
+.io pre { margin: 0; padding: 10px 16px; border-radius: var(--r-s); background: var(--code-bg); font: 14px/1.65 var(--f-code); overflow-x: auto; color: var(--sub); }
+</style>
+
+<div id="progress" aria-hidden="true"></div>
+<div class="wrap hide" id="root" data-ring="03" data-name="素数因子" data-home="index.html" data-tone="c">
+  <nav class="toc" id="toc" aria-label="目录"></nav>
+  <main>
+    <header>
+      <p class="kicker"><a href="index.html">C 语言讲义</a><span class="chip">环 03</span></p>
+      <h1>素数与因子</h1>
+      <div class="intro">
+        <p>前半份讲素数和因子：判素数的试除法、求因子和、辗转相除、筛法。后半份是选择题和读程序题的重灾区：关系和逻辑运算、短路、优先级、if 和 else 怎么配对、循环到底跑几次。</p>
+      </div>
+      <div class="tools">
+        <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
+      </div>
+      <div class="resume" id="resume"></div>
+      <details class="toc-m"><summary>目录</summary><nav class="toc" id="toc-m" aria-label="目录"></nav></details>
+    </header>
+<div class="part" id="zt">
+<h2>5 道真题</h2>
+<p>先自己写，写完再打开完整程序对照。每个程序都编译运行过，下面的运行结果就是它的真实输出。</p>
+</div>
+<section class="sec prob" id="t1" data-short="题1 素数判断">
+<h3><span class="no">题1</span><span class="t">素数判断</span></h3>
+<p class="pmeta"><span class="ptag">代表题</span> · 2023 第1题</p>
+<div class="stem"><p>求 1000 以内的素数之和。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>is_prime(n)</code>：n 是素数返回 1，不是返回 0。</p></div>
+<ul class="hints"><li><b>思路</b>n &lt; 2 先排除；试除 2 到 √n（写 i * i &lt;= n）；有一个整除就不是。</li><li><b>考试要写完整程序</b>main 里 for 循环调用 is_prime 累加，最后 printf 输出和。</li></ul>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s2">②</a> <a href="#s3">③</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>n&lt;2 先排除；上界 i*i&lt;=n（带等号）。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int is_prime(int n)
+{
+    int i;
+    if (n &lt; 2) return 0;
+    for (i = 2; i * i &lt;= n; i++)
+        if (n % i == 0) return 0;
+    return 1;
+}
+
+int main(void)
+{
+    int n, sum = 0;
+    for (n = 2; n &lt; 1000; n++)
+        if (is_prime(n)) sum += n;
+    printf("1000 以内的素数之和 = %d\n", sum);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>1000 以内的素数之和 = 76127</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t2" data-short="题2 最大公约数">
+<h3><span class="no">题2</span><span class="t">最大公约数</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第5章习题3</p>
+<div class="stem"><p>输入两个正整数 m 和 n，求其最大公约数和最小公倍数。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>gcd(m, n)</code> 返回最大公约数；<code>lcm(m, n)</code> 返回最小公倍数。</p></div>
+<ul class="hints"><li><b>思路</b>辗转相除：余数不为 0 就继续「除数变被除数，余数变除数」。</li></ul>
+<p class="refs">对应讲义　<a href="#s6">⑥</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>循环条件是余数不为 0；最小公倍数先除后乘。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int gcd(int m, int n)
+{
+    int r;
+    while (n != 0) {
+        r = m % n;
+        m = n;
+        n = r;
+    }
+    return m;
+}
+
+int lcm(int m, int n)
+{
+    return m / gcd(m, n) * n;
+}
+
+int main(void)
+{
+    int m, n;
+    scanf("%d%d", &amp;m, &amp;n);
+    printf("最大公约数 %d，最小公倍数 %d\n", gcd(m, n), lcm(m, n));
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>12 18</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>最大公约数 6，最小公倍数 36</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 完数">
+<h3><span class="no">题3</span><span class="t">完数</span></h3>
+<p class="pmeta"><span class="ptag">变式</span> · 教材第5章习题9</p>
+<div class="stem"><p>一个数如果恰好等于它的因子之和，这个数就称为「完数」。例如 6 的因子为 1，2，3，而 6=1+2+3，因此 6 是完数。编程找出 1000 之内的所有完数，并按下面格式输出其因子：</p>
+<pre class="fig">6 its factors are 1,2,3</pre></div>
+<div class="req"><p class="lab">要求</p><p><code>print_perfect(limit)</code> 把 2~limit 里的完数一行一个打印出来，格式和上面完全一样，每行末尾换行。</p></div>
+<ul class="hints"><li><b>思路</b>外层枚举 n；内层先求真因子和（1 到 n-1）；是完数再走一遍内层把因子打出来。逗号只加在两个因子之间。</li></ul>
+<p class="refs">对应讲义　<a href="#s5">⑤</a> <a href="#s8">⑧</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>先判断再打印；逗号只在两个因子之间。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void print_perfect(int limit)
+{
+    int n, i, s;
+    for (n = 2; n &lt;= limit; n++) {
+        s = 0;
+        for (i = 1; i &lt; n; i++)
+            if (n % i == 0) s += i;
+        if (s == n) {
+            printf("%d its factors are 1", n);     /* 1 一定是因子，先打出来 */
+            for (i = 2; i &lt; n; i++)
+                if (n % i == 0) printf(",%d", i);
+            printf("\n");
+        }
+    }
+}
+
+int main(void)
+{
+    print_perfect(1000);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>6 its factors are 1,2,3
+28 its factors are 1,2,4,7,14
+496 its factors are 1,2,4,8,16,31,62,124,248</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 筛法">
+<h3><span class="no">题4</span><span class="t">筛法</span></h3>
+<p class="pmeta"><span class="ptag">综合</span> · 教材第6章习题1</p>
+<div class="stem"><p>用筛选法求 100 之内的素数。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>sieve(n, primes)</code> 用筛法找出 2~n 的全部素数，从小到大放进 primes[0]、primes[1]…，返回素数的个数。（n 最大 1000）</p></div>
+<ul class="hints"><li><b>思路</b>开一个标记数组 mark[1001]，先把 2~n 全标 1；从 2 开始，把每个素数的倍数标 0；最后从小到大把标 1 的数放进 primes。</li></ul>
+<p class="refs">对应讲义　<a href="#s7">⑦</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>标记数组下标就是数本身；划倍数从 i*i 开始也可以从 2*i 开始。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int sieve(int n, int primes[])
+{
+    int mark[1001] = {0};
+    int i, j, cnt = 0;
+    for (i = 2; i &lt;= n; i++) mark[i] = 1;
+    for (i = 2; i * i &lt;= n; i++)
+        if (mark[i])
+            for (j = i * i; j &lt;= n; j += i) mark[j] = 0;
+    for (i = 2; i &lt;= n; i++)
+        if (mark[i]) primes[cnt++] = i;
+    return cnt;
+}
+
+int main(void)
+{
+    int primes[100], n, i;
+    n = sieve(100, primes);
+    for (i = 0; i &lt; n; i++) {
+        printf("%5d", primes[i]);
+        if ((i + 1) % 10 == 0) printf("\n");      /* 每行 10 个 */
+    }
+    printf("\n");
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>    2    3    5    7   11   13   17   19   23   29
+   31   37   41   43   47   53   59   61   67   71
+   73   79   83   89   97</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t5" data-short="题5 区间素数">
+<h3><span class="no">题5</span><span class="t">区间素数</span></h3>
+<p class="pmeta"><span class="ptag">限时</span> · 考研真题精选 华南理工大学2018（配-5-真综5） · 限时 15 分钟</p>
+<div class="stem"><p>编程求 100～200 间的全部素数。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>print_primes(a, b)</code> 打印 a~b（含两端）的全部素数，数和数之间一个空格，最后换行。</p>
+<p>例如 <code>print_primes(2, 10)</code> 打印 "2 3 5 7\n"。</p></div>
+<ul class="hints"><li><b>注意</b>，写完再看讲义。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a> <a href="#s8">⑧</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>内层上界带等号；空格只在两个数之间；最后换行。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void print_primes(int a, int b)
+{
+    int n, j, flag, first = 1;
+    for (n = a; n &lt;= b; n++) {
+        flag = (n &gt;= 2);
+        for (j = 2; j * j &lt;= n; j++)
+            if (n % j == 0) { flag = 0; break; }
+        if (flag) {
+            printf(first ? "%d" : " %d", n);
+            first = 0;
+        }
+    }
+    printf("\n");
+}
+
+int main(void)
+{
+    print_primes(100, 200);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>101 103 107 109 113 127 131 137 139 149 151 157 163 167 173 179 181 191 193 197 199</pre></div>
+</div></div>
+</section>
+<section class="recall" id="recall">
+<h2>开始之前，先回想一下</h2>
+<p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
+<p class="q"><code>int sum = 7, n = 2;</code> 求平均写 <code>sum / n</code> 得 → <span class="a" tabindex="0">3（要写 <code>(double)sum / n</code> 才是 3.5）</span><span class="src">环01 ①</span></p>
+<p class="q"><code>scanf("%d,%d", &amp;m, &amp;n);</code> 让 m = 24、n = 18，敲 → <span class="a" tabindex="0"><span class="out">24,18</span></span><span class="src">环01 细11</span></p>
+<p class="q"><code>-17 % 5</code> → <span class="a" tabindex="0">-2</span><span class="src">环01 细5</span></p>
+<p class="q">数字字符 '5' 变成整数 5 → <span class="a" tabindex="0"><code>'5' - '0'</code></span><span class="src">环02 细2</span></p>
+</section>
+<div class="part" id="p1">
+<h2>编程题怎么写</h2>
+<p>判素数的骨架只有四行，但每一行都有人写错。</p>
+</div>
+<section class="sec" id="gu" data-short="骨架">
+<h3><span class="t">通用骨架</span></h3>
+<div class="code"><pre><code class="c">flag = (n &gt;= 2);                   // 1、0、负数都不是素数
+for (i = 2; i * i &lt;= n; i++)       // 试到 √n 就够
+    if (n % i == 0) { flag = 0; break; }
+// 循环结束：flag 是 1 就是素数</code></pre></div>
+</section>
+<section class="sec" id="s1" data-short="① 试除到 √n">
+<h3><span class="no">①</span><span class="t">试除法：从 2 试到 √n</span></h3>
+<p>n 只要被 2 到 √n 之间的某个数整除，就不是素数。看两个例子怎么试：</p>
+<div class="tbl"><table>
+<tr><th>n</th><th>依次试</th><th>结论</th></tr>
+<tr><td>21</td><td>21 % 2 = 1，21 % 3 = 0</td><td>不是素数，试到 3 就 break</td></tr>
+<tr><td>29</td><td>29 % 2、3、4、5 都不为 0</td><td>素数</td></tr>
+</table></div>
+<p>29 为什么试到 5 就够？因为 6 × 6 = 36 已经大于 29。如果 29 有一个比 √29 大的因子，那它一定还有一个比 √29 小的「搭档」，前面早就试到了。</p>
+</section>
+<section class="sec" id="s2" data-short="② 1 不是素数">
+<h3><span class="no">②</span><span class="t">1、0、负数都不是素数</span></h3>
+<p>骨架第一句 <code>flag = (n &gt;= 2);</code> 很容易漏。漏掉以后 n = 1 时，<code>i * i &lt;= 1</code> 一开始就不成立，循环一次都不跑，flag 还是 1，<b>1 就被当成了素数</b>。题1 的测试会查这个。</p>
+</section>
+<section class="sec" id="s3" data-short="③ 上界要带等号">
+<h3><span class="no">③</span><span class="t">上界写 i * i &lt;= n，等号不能少</span></h3>
+<p>拿 121 = 11 × 11 试：</p>
+<div class="calc">
+  <code>for (i = 2; i * i &lt;= n; i++)</code><span class="arrow">→</span><span><span class="a" tabindex="0">合数</span> <span class="note">试到 11，整除</span></span>
+  <code>for (i = 2; i &lt; sqrt(n); i++)</code><span class="arrow">→</span><span><span class="a" tabindex="0">素数</span> <span class="note">sqrt(121) 是 11，i 只到 10，11 没试到</span></span>
+</div>
+<p>少一个等号，121、169 这种「某个素数的平方」就会被当成素数。</p>
+<p class="fix">题5 的原书参考答案用的就是 <code>j &lt; sqrt(i)</code>，<b>是错的</b>，会把 121、169 输出成素数。题5 的测试专门查这一点。</p>
+</section>
+<section class="sec" id="s4" data-short="④ flag 每次重置">
+<h3><span class="no">④</span><span class="t">换一个数，flag 要重新置 1</span></h3>
+<p>外层枚举 n、内层判素数时，<code>flag = 1</code> 必须写在<b>外层循环里面</b>：</p>
+<div class="code"><pre><code class="c">for (n = 2; n &lt;= 20; n++) {
+    flag = 1;                       // 每个数重新开始
+    for (i = 2; i * i &lt;= n; i++)
+        if (n % i == 0) { flag = 0; break; }
+    if (flag) count++;
+}</code></pre></div>
+<p>2–20 里的素数：flag 每次重置得 <span class="a" tabindex="0">8</span> 个（对）；flag 只在最外面置一次 1，得 <span class="a" tabindex="0">2</span> 个，因为碰到 4 以后 flag 变成 0，再也回不到 1。</p>
+</section>
+<section class="sec" id="s5" data-short="⑤ 因子和与完数">
+<h3><span class="no">⑤</span><span class="t">因子和：完数题</span></h3>
+<p>真因子（不含自身）从 1 试到 n − 1，整除的就是因子：</p>
+<div class="code"><pre><code class="c">s = 0;
+for (i = 1; i &lt; n; i++)
+    if (n % i == 0) s += i;
+if (s == n) …                       // 完数</code></pre></div>
+<p>28 的真因子是 <span class="a" tabindex="0">1,2,4,7,14</span>，和是 <span class="a" tabindex="0">28</span>，所以 28 是完数。</p>
+<p class="mute small">外层枚举 n 时，s 也要每次清 0，道理和 ④ 一样。</p>
+</section>
+<section class="sec" id="s6" data-short="⑥ 辗转相除">
+<h3><span class="no">⑥</span><span class="t">辗转相除求最大公约数</span></h3>
+<p>大的除以小的，余数不为 0 就「除数变被除数，余数变除数」，余数为 0 时的除数就是答案：</p>
+<div class="code"><pre><code class="c">while (b != 0) {
+    r = a % b;
+    a = b;
+    b = r;
+}
+// 循环结束：a 是最大公约数</code></pre></div>
+<div class="tbl"><table>
+<tr><th>a</th><th>b</th><th>r = a % b</th></tr>
+<tr><td>24</td><td>18</td><td>6</td></tr>
+<tr><td>18</td><td>6</td><td>0</td></tr>
+<tr><td>6</td><td>0</td><td>结束，gcd = 6</td></tr>
+</table></div>
+<p>最小公倍数 = 两数之积 ÷ 最大公约数。要写成 <code>m / gcd * n</code>，<b>先除后乘</b>：测试里有 60000 和 70000，先乘就超出 int 了（环01 ③）。24 和 18 的最小公倍数是 <span class="a" tabindex="0">72</span>。</p>
+</section>
+<section class="sec" id="s7" data-short="⑦ 筛法用数组">
+<h3><span class="no">⑦</span><span class="t">筛法：先全标成素数，再划掉倍数</span></h3>
+<p>开一排格子 <code>mark[0..n]</code>，先把 2 到 n 全标 1，然后从 2 开始，把每个素数的倍数标成 0：</p>
+<div class="code"><pre><code class="c">for (i = 2; i &lt;= n; i++) mark[i] = 1;
+for (i = 2; i * i &lt;= n; i++)
+    if (mark[i])
+        for (j = i * i; j &lt;= n; j += i) mark[j] = 0;</code></pre></div>
+<p>30 以内留下的是 <span class="a" tabindex="0">2 3 5 7 11 13 17 19 23 29</span>。</p>
+<p class="mute small">数组的规矩环06 细讲。现在只要知道：<code>int mark[31]</code> 的下标是 0–30，没有 <code>mark[31]</code>。</p>
+</section>
+<section class="sec" id="s8" data-short="⑧ 输出照抄格式">
+<h3><span class="no">⑧</span><span class="t">输出格式：照抄样例</span></h3>
+<p>题3 要求的格式是「6 its factors are 1,2,3」：数字之间是逗号、没有空格，最后一个后面没有逗号。</p>
+<p>「第一个前面不加逗号」的写法：</p>
+<div class="code"><pre><code class="c">first = 1;
+for (i = 1; i &lt; n; i++)
+    if (n % i == 0) {
+        printf(first ? "%d" : ",%d", i);
+        first = 0;
+    }</code></pre></div>
+</section>
+<div class="part" id="p2">
+<h2>关系、逻辑、if 和循环的坑</h2>
+<p>这一部分是选择题和读程序题出得最多的地方。</p>
+</div>
+<section class="sec" id="d1" data-short="细1 关系运算得 0 或 1">
+<h3><span class="no">细1</span><span class="t">比较的结果只有 1 和 0</span></h3>
+<p><code>3 &lt; 4</code> 的值是 1，<code>3 &gt; 4</code> 的值是 0。C 没有「真」「假」两个值，比较的结果就是整数 1 或 0。</p>
+<p>所以<b>连写不是数学的意思</b>：</p>
+<div class="calc">
+  <code>5 &gt; 3 &gt; 1</code><span class="arrow">→</span><span><span class="a" tabindex="0">0</span> <span class="note">先 5 &gt; 3 得 1，再 1 &gt; 1 得 0</span></span>
+  <code>10 &lt; x &lt; 15（x = 20）</code><span class="arrow">→</span><span><span class="a" tabindex="0">1</span> <span class="note">10 &lt; 20 得 1，1 &lt; 15 得 1，永远为真</span></span>
+  <code>(3 != 4) &gt; 2</code><span class="arrow">→</span><span><span class="a" tabindex="0">0</span> <span class="note">3 != 4 得 1，1 &gt; 2 得 0</span></span>
+</div>
+<p>数学的 10 &lt; x &lt; 15 要写成 <code>x &gt; 10 &amp;&amp; x &lt; 15</code>；「不在这个范围」写 <code>x &lt;= 10 || x &gt;= 15</code>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">恒为真的表达式 → <span class="a" tabindex="0"><code>0 &lt; x &lt; 5</code></span><span class="src">配-4-5</span></p>
+<p class="q"><code>(3 != 4) &gt; 2</code> 的值 → <span class="a" tabindex="0">0（假）</span><span class="src">配-4-4</span></p>
+<p class="q"><code>10 &lt; a &lt; 15</code> 的判断<span class="src">川师卷2022-23 一-1</span></p>
+<p class="q">关系运算连写<span class="src">川师卷2018-19 四-1</span></p>
+</div>
+</section>
+<section class="sec" id="d2" data-short="细2 非 0 就是真">
+<h3><span class="no">细2</span><span class="t">逻辑运算：非 0 就是真</span></h3>
+<p><code>&amp;&amp;</code>（并且）、<code>||</code>（或者）、<code>!</code>（不是）的结果也只有 1 和 0。判断真假时，<b>任何非 0 的值都算真</b>，负数也是。a = 3、b = 4、c = 5：</p>
+<div class="calc">
+  <code>!5</code><span class="arrow">→</span><span><span class="a" tabindex="0">0</span></span>
+  <code>!0</code><span class="arrow">→</span><span><span class="a" tabindex="0">1</span></span>
+  <code>-1 &amp;&amp; -1</code><span class="arrow">→</span><span><span class="a" tabindex="0">1</span> <span class="note">两个都非 0</span></span>
+  <code>a + b &gt; c &amp;&amp; b == c</code><span class="arrow">→</span><span><span class="a" tabindex="0">0</span> <span class="note">7 &gt; 5 是 1，4 == 5 是 0</span></span>
+  <code>a || b + c &amp;&amp; b - c</code><span class="arrow">→</span><span><span class="a" tabindex="0">1</span> <span class="note">a 非 0，|| 直接得 1</span></span>
+</div>
+<p>所以 <code>if (a++)</code>、<code>if (c = getchar())</code>、<code>if (5)</code> 都合法：括号里是什么表达式都行，非 0 即真。</p>
+<p><span class="trap"><code>if (a &lt;&gt; b)</code></span> 编译不过，C 里「不等于」只有 <code>!=</code>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">a = 3、b = 4、c = 5，写出各逻辑表达式的值<span class="src">教-4-3</span></p>
+<p class="q"><code>(-1) &amp;&amp; (-1)</code> → <span class="a" tabindex="0">1</span><span class="src">配-4-14</span></p>
+<p class="q"><code>(a == 1) || (a != 1)</code> 的值 → <span class="a" tabindex="0">恒为 1</span><span class="src">配-4-9</span></p>
+<p class="q"><code>if (a &lt;&gt; b)</code> 合法吗 → <span class="a" tabindex="0">不合法</span><span class="src">配-4-21</span></p>
+</div>
+</section>
+<section class="sec" id="d3" data-short="细3 短路">
+<h3><span class="no">细3</span><span class="t">短路：右边可能根本不算</span></h3>
+<p><code>&amp;&amp;</code> 左边已经是假，结果一定是假，右边<b>不再计算</b>；<code>||</code> 左边已经是真，右边也不算。右边的 <code>++</code>、赋值都不会发生。</p>
+<div class="calc">
+  <code>a = 0; b = 1; a &amp;&amp; ++b;</code><span class="arrow">b =</span><span><span class="a" tabindex="0">1</span> <span class="note">++b 没执行</span></span>
+  <code>k1 = 10; k2 = 20; (k1 = k1 &gt; k2) &amp;&amp; (k2 = k2 &gt; k1);</code><span class="arrow">→</span><span><span class="a" tabindex="0">k1 = 0，k2 = 20</span> <span class="note">左边 k1 得 0，右边不算</span></span>
+  <code>a = b = c = d = 0; (++a || ++b) ? ++c : ++d;</code><span class="arrow">→</span><span><span class="a" tabindex="0">1,0,1,0</span> <span class="note">++a 得 1，++b 不算</span></span>
+</div>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">上表第 2 行，k1、k2 → <span class="a" tabindex="0">0 和 20</span><span class="src">配-4-11</span></p>
+<p class="q"><code>m = n = 2; (m = a &gt; b) &amp;&amp; (n = c &lt; d);</code>（a=5, b=6, c=7, d=8）之后 n → <span class="a" tabindex="0">2</span><span class="src">配-4-12</span></p>
+<p class="q">上表第 3 行 → <span class="a" tabindex="0">1,0,1,0</span><span class="src">配-4-57</span></p>
+<p class="q">会因为短路使 b 不变的 → <span class="a" tabindex="0"><code>a++ &amp;&amp; b++</code>（a = 0 时）</span><span class="src">配-4-7</span></p>
+<p class="q"><code>(a = b + c) || (++b)</code> 之后 b 变不变 → <span class="a" tabindex="0">不变（左边非 0 时）</span><span class="src">配-2-63</span></p>
+<p class="q">a = 0，<code>if (a++ &amp;&amp; b++)</code> 之后 a、b → <span class="a" tabindex="0">a = 1，b 不变</span><span class="src">配-2-120</span></p>
+</div>
+</section>
+<section class="sec" id="d4" data-short="细4 优先级">
+<h3><span class="no">细4</span><span class="t">优先级：记住这一串</span></h3>
+<p>从高到低：</p>
+<p>单目（<code>! ++ --</code>、强转）&gt; 算术（<code>* / %</code> 高于 <code>+ -</code>）&gt; 移位 &gt; 关系（<code>&lt; &lt;= &gt; &gt;=</code>）&gt; 相等（<code>== !=</code>）&gt; 位运算（<code>&amp; ^ |</code>）&gt; <code>&amp;&amp;</code> &gt; <code>||</code> &gt; <code>?:</code> &gt; 赋值 &gt; 逗号</p>
+<p>几个常考的拆法：</p>
+<div class="calc">
+  <code>!x != 0</code><span class="arrow">是</span><span><span class="a" tabindex="0"><code>(!x) != 0</code></span></span>
+  <code>a = b == c</code><span class="arrow">是</span><span><span class="a" tabindex="0"><code>a = (b == c)</code></span></span>
+  <code>x &gt; y == z</code><span class="arrow">是</span><span><span class="a" tabindex="0"><code>(x &gt; y) == z</code></span></span>
+</div>
+<p><code>x = 0; while (!x != 0) s += x++;</code> 跑 <span class="a" tabindex="0">1</span> 次：第一次 !0 是 1，进去后 x 变 1；第二次 !1 是 0，停。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">上面那段，s 的输出 → <span class="a" tabindex="0">0</span><span class="src">真选8·武科大2019</span></p>
+<p class="q">a, b, c = 1, 2, 3，<code>!((b + c) &gt; (a + 4))</code> → <span class="a" tabindex="0">1</span><span class="src">真选30·北航2018</span></p>
+</div>
+</section>
+<section class="sec" id="d5" data-short="细5 if (x = 0)">
+<h3><span class="no">细5</span><span class="t">if (x = 0) 是赋值；if 后多一个分号</span></h3>
+<p><code>if (x = 0x12)</code> 不是比较，是<b>把 0x12 赋给 x</b>，然后看 x 是不是非 0。x 被改了，条件永远为真。（判断相等是 <code>==</code>。）</p>
+<p><code>if</code> 后面紧跟一个分号，if 管的就是那个<b>空语句</b>，下面一行不管条件真假都执行：</p>
+<div class="code"><pre><code class="c">x = 0x13;
+if (x = 0x12) printf("True");
+printf("False\n");</code></pre></div>
+<p>输出 <span class="a" tabindex="0">TrueFalse</span>，之后 x = <span class="a" tabindex="0">18</span>。第二个 printf 根本不归 if 管。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">上面那段的输出 → <span class="a" tabindex="0">TrueFalse</span><span class="src">配-4-26</span></p>
+<p class="q">同类：输出 TF<span class="src">配-4-44</span></p>
+<p class="q"><code>if (x = y + z)</code> 的判断<span class="src">川师卷2019-20 一-6</span></p>
+<p class="q"><code>if (x &lt;= 3); else if (x != 10) printf(…);</code> 什么时候输出 → <span class="a" tabindex="0">x 大于 3 且不等于 10</span><span class="src">配-4-39</span></p>
+</div>
+</section>
+<section class="sec" id="d6" data-short="细6 else 配对">
+<h3><span class="no">细6</span><span class="t">else 跟最近的 if，不看缩进</span></h3>
+<p><b>else 和它前面最近的、还没配对的 if 配对</b>。缩进是写给人看的，编译器不看：</p>
+<div class="code"><pre><code class="c">r = 0;
+if (s &gt; 2)
+    if (t &gt; 2) r = 1;
+else r = 2;              // 看着属于外层，其实属于 if (t &gt; 2)</code></pre></div>
+<p>s = 3、t = 1 时，r = <span class="a" tabindex="0">2</span>。</p>
+<p>if 不加花括号<b>只管一句</b>。这一句可以是逗号表达式：</p>
+<div class="code"><pre><code class="c">a = 10; b = 50; c = 30;
+if (a &gt; b) a = b, b = c;     // 逗号表达式整个归 if
+c = a;                       // 总会执行</code></pre></div>
+<p>结果 a = <span class="a" tabindex="0">10</span>，b = <span class="a" tabindex="0">50</span>，c = <span class="a" tabindex="0">10</span>。</p>
+<p><span class="trap"><code>if (a = 1) b = 1; c = 2; else d = 3;</code></span> 编译不过：if 只管 <code>b = 1;</code>，后面的 else 找不到 if。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">else 和谁配对 → <span class="a" tabindex="0">在它之前最近的、不带 else 的同层 if</span><span class="src">配-4-22</span></p>
+<p class="q">上面第二段的结果 → <span class="a" tabindex="0">a = 10，b = 50，c = 10</span><span class="src">配-4-32</span></p>
+<p class="q">嵌套 if 读程序<span class="src">配-4-35、配-4-36、配-4-37</span></p>
+<p class="q">不加花括号时 if 管几句 → <span class="a" tabindex="0">一句</span><span class="src">配-4-24</span></p>
+</div>
+</section>
+<section class="sec" id="d7" data-short="细7 条件运算符">
+<h3><span class="no">细7</span><span class="t">条件运算符 ?:</span></h3>
+<p><code>a ? b : c</code>：a 非 0 取 b，否则取 c。连着写时<b>从右往左</b>结合：</p>
+<div class="calc">
+  <code>m = 7; g = m &gt; 5 ? m &gt; 8 ? 3 : 2 : 1;</code><span class="arrow">g =</span><span><span class="a" tabindex="0">2</span> <span class="note">就是 m &gt; 5 ? (m &gt; 8 ? 3 : 2) : 1</span></span>
+</div>
+<p>条件也能用来选格式串：</p>
+<div class="code"><pre><code class="c">for (x = 3; x &lt; 6; x++) printf((x % 2) ? "*%d" : "#%d", x);</code></pre></div>
+<p>输出 <span class="a" tabindex="0">*3#4*5</span>。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q"><code>(w) ? … : …</code> 里的 w 等价于 → <span class="a" tabindex="0"><code>w != 0</code></span><span class="src">配-4-46</span></p>
+<p class="q">上面那段的输出 → <span class="a" tabindex="0">*3#4*5</span><span class="src">配-4-55</span></p>
+<p class="q"><code>k = a &gt; b ? (b &gt; c ? 1 : 0) : 0;</code> 等价于 → <span class="a" tabindex="0"><code>if (a &gt; b &amp;&amp; b &gt; c) k = 1; else k = 0;</code></span><span class="src">配-4-49、配-4-50</span></p>
+<p class="q">嵌套 ?: 求值<span class="src">川师卷2018-19 一-10</span></p>
+</div>
+</section>
+<section class="sec" id="d8" data-short="细8 循环跑几次">
+<h3><span class="no">细8</span><span class="t">循环跑几次、结束时变量是几</span></h3>
+<p>for 的执行顺序：表达式 1 只做一次 → 判表达式 2 → 循环体 → 表达式 3 → 再判表达式 2 …… 读程序时画追踪表，盯住<b>最后一次判断</b>：</p>
+<div class="calc">
+  <code>for (i = 0; i &lt;= 10; i++) a = i;</code><span class="arrow">→</span><span><span class="a" tabindex="0">i = 11，a = 10</span> <span class="note">i 停在第一个让条件为假的值</span></span>
+  <code>y = 10; while (y--);</code><span class="arrow">→</span><span><span class="a" tabindex="0">y = -1</span> <span class="note">最后一次判断时 y 是 0，判完还要减 1</span></span>
+  <code>k = 10; do { k++; } while (k &lt; 5);</code><span class="arrow">→</span><span><span class="a" tabindex="0">k = 11</span> <span class="note">do-while 至少做一次</span></span>
+</div>
+<p>while 和 for 是先判断再做（当型），do-while 是先做再判断（直到型），这是环01 细14 说的两种循环。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q">上表第 1 行，输出 i, a → <span class="a" tabindex="0">11,10</span><span class="src">配-5-36</span></p>
+<p class="q">上表第 2 行，y → <span class="a" tabindex="0">-1</span><span class="src">配-5-7</span></p>
+<p class="q">至少执行一次的循环 → <span class="a" tabindex="0">do-while</span><span class="src">真选31·北航2018</span></p>
+<p class="q">sum 没赋初值就 <code>sum += i</code> → <span class="a" tabindex="0">结果不确定</span><span class="src">配-5-48</span></p>
+</div>
+</section>
+<section class="sec" id="d9" data-short="细9 break 和 continue">
+<h3><span class="no">细9</span><span class="t">break 和 continue</span></h3>
+<p><code>break</code> 跳出<b>所在的这一层</b>循环（或 switch）；<code>continue</code> 跳过这一轮剩下的部分，直接进入下一轮。</p>
+<div class="code"><pre><code class="c">for (i = 1; i &lt;= 6; i++) {
+    if (i % 2 == 0) continue;     // for 里 continue 之后照样执行 i++
+    if (i &gt; 4) break;
+    printf("%d ", i);
+}</code></pre></div>
+<p>输出 <span class="a" tabindex="0">1 3</span>，结束时 i = <span class="a" tabindex="0">5</span>。</p>
+<p>break 只能用在循环和 switch 里，而且只跳一层，跳不出外层循环。</p>
+<div class="exam">
+<p>真题里这样考</p>
+<p class="q"><code>for (a = 1; a &lt; 5; a++) { if (a % 2 == 0) break; b += a; }</code>（b = 0）之后 b → <span class="a" tabindex="0">1</span><span class="src">配-5-44</span></p>
+<p class="q">break 能用在哪里 → <span class="a" tabindex="0">只能在循环体和 switch 里</span><span class="src">真选7·武科大2019</span></p>
+<p class="q">continue 会终止整个循环吗 → <span class="a" tabindex="0">不会</span><span class="src">配-5-57、配-5-58</span></p>
+<p class="q">break / continue 填空<span class="src">川师卷2018-19 三-3</span></p>
+</div>
+</section>
+<section class="sec" id="d10" data-short="细10 小数不要用 ==">
+<h3><span class="no">细10</span><span class="t">小数不要用 == 比较</span></h3>
+<p>小数在计算机里有误差：<code>0.1 + 0.2 == 0.3</code> 的值是 <span class="a" tabindex="0">0</span>。要比就写 <code>fabs(a - b) &lt; 1e-9</code>。</p>
+<p>判素数、求因子这类题，全程用整数，就没有这个问题。</p>
+<p class="mute small">注意：<code>x == y</code>（x、y 是 float）并不是编译错误，只是结果不可靠。配-4-17 有个选项说它「非法」，那个说法是错的。</p>
+</section>
+    <div class="end">
+      <nav class="ringnav"><a href="r02.html"><small>← 上一环</small>环02 数位处理</a><a href="index.html"><small>目录</small>全部 13 环</a><a href="r04.html"><small>下一环 →</small>环04 枚举与组合</a></nav>
+    </div>
+
+  </main>
+</div>
+<div class="fab" id="fab"><button type="button" class="m" id="fab-toc" aria-label="打开目录">目录</button><button type="button" id="fab-top" aria-label="回到顶部">↑</button></div>
+<div class="drawer" id="drawer"><div class="shade"></div><div class="panel"><nav class="toc" id="toc-d" aria-label="目录"></nav></div></div>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var ring = root.getAttribute("data-ring");             // 目录页没有
+  var secs = Array.prototype.slice.call(document.querySelectorAll(".recall, .sec"));
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function label(s) {
+    if (s.classList.contains("recall")) return "开始之前";
+    return s.dataset.short || "";
+  }
+
+  /* 图标：Lucide（github.com/lucide-icons/lucide，ISC 许可），24×24 线条图标，内联才能离线用 */
+  var IC = {
+    code: '<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>',
+    bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    left: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    term: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + "</svg>"; }
+
+  /* 给各种块加图标、给代码块加标题栏 */
+  var PART_IC = { p1: "code", p2: "bulb", rings: "layers", base: "repeat", cover: "book", how: "compass" };
+  var parts = document.querySelectorAll(".part");
+  parts.forEach(function (p, i) {
+    var sp = document.createElement("span");
+    sp.className = "pic"; sp.innerHTML = ic(PART_IC[p.id] || (i ? "bulb" : "code"));
+    p.insertBefore(sp, p.firstChild);
+  });
+  document.querySelectorAll(".exam > p:first-child").forEach(function (p) { p.innerHTML = ic("target") + p.innerHTML; });
+  document.querySelectorAll(".fix").forEach(function (f) {
+    var t = document.createElement("span"); t.className = "ft"; t.innerHTML = ic("alert") + "注意";
+    f.insertBefore(t, f.firstChild);
+  });
+  document.querySelectorAll(".recall h2").forEach(function (h) { h.innerHTML = ic("history") + h.innerHTML; });
+  document.querySelectorAll(".code").forEach(function (box) {
+    var hd = document.createElement("div"), isOut = !!box.querySelector("pre.o");
+    hd.className = "hd";
+    hd.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' + (isOut ? ic("term") + "输出" : ic("code") + (box.dataset.label || "C"));
+    box.insertBefore(hd, box.firstChild);
+  });
+  /* 第二部分（细节）的节，目录高亮用紫色 */
+  var inP2 = false;
+  document.querySelectorAll(".part, .sec").forEach(function (el) {
+    if (el.classList.contains("part")) { inP2 = el !== parts[0]; return; }
+    if (inP2) el.classList.add("p2");
+  });
+
+  /* 目录：大部分做小标题，每一节一行 */
+  function buildToc(nav, withHome) {
+    if (!nav) return;
+    var h = "";
+    if (withHome && ring) h += '<a class="home" href="' + root.getAttribute("data-home") + '">' + ic("left") + "全部 13 环</a>";
+    document.querySelectorAll(".recall, .part, .sec").forEach(function (s) {
+      if (s.classList.contains("part")) h += "<p>" + s.querySelector("h2").textContent + "</p>";
+      else if (label(s)) h += '<a href="#' + s.id + '" data-id="' + s.id + '"' + (s.classList.contains("p2") ? ' class="p2"' : "") + ">" + label(s) + "</a>";
+    });
+    nav.innerHTML = h;
+  }
+  buildToc(document.getElementById("toc"), true);
+  buildToc(document.getElementById("toc-m"), false);
+  buildToc(document.getElementById("toc-d"), true);
+  document.querySelectorAll("#toc-m a").forEach(function (a) {
+    a.addEventListener("click", function () { a.closest("details").open = false; });
+  });
+
+  /* 空：点一下揭开 */
+  function hidden() { return root.classList.contains("hide"); }
+  document.querySelectorAll(".a").forEach(function (a) {
+    function flip() { if (hidden()) { a.classList.toggle("on"); syncSec(a.closest(".sec, .recall")); } }
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "点开看答案");
+    a.addEventListener("click", flip);
+    a.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+  document.querySelectorAll(".oa").forEach(function (o) {
+    function flip() { if (hidden()) { o.classList.toggle("on"); syncSec(o.closest(".sec, .recall")); } }
+    o.addEventListener("click", function (e) { if (!e.target.closest(".copy")) flip(); });
+    o.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); flip(); } });
+  });
+
+  /* 每节一个「本节答案」：一次揭开这一节的全部空 */
+  function blanks(s) { return s ? s.querySelectorAll(".a, .oa") : []; }
+  function syncSec(s) {
+    if (!s || !s._btn) return;
+    var all = blanks(s), open = 0;
+    for (var i = 0; i < all.length; i++) if (all[i].classList.contains("on")) open++;
+    var allOpen = open === all.length;
+    s._btn.dataset.open = allOpen ? "1" : "";
+    s._btn.innerHTML = allOpen ? ic("eyeoff") + "盖上本节" : ic("eye") + "本节答案";
+    s._btn.hidden = !hidden();
+  }
+  secs.forEach(function (s) {
+    var head = s.querySelector("h3, h2");
+    if (!head || !blanks(s).length) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "secbtn";
+    b.addEventListener("click", function () {
+      var all = blanks(s), allOpen = b.dataset.open === "1";
+      for (var i = 0; i < all.length; i++) all[i].classList.toggle("on", !allOpen);
+      syncSec(s);
+    });
+    head.appendChild(b);
+    s._btn = b;
+    syncSec(s);
+  });
+
+  /* 全部揭开 / 盖上 */
+  /* 每道题的完整程序：点一下展开 / 收起 */
+  document.querySelectorAll(".prog-btn").forEach(function (b) {
+    b.innerHTML = ic("code") + "完整程序";
+    b.addEventListener("click", function () {
+      var on = b.parentNode.classList.toggle("on");
+      b.setAttribute("aria-expanded", on ? "true" : "false");
+      b.innerHTML = ic("code") + (on ? "收起程序" : "完整程序");
+    });
+  });
+  var btn = document.getElementById("toggle");
+  function toggleAll() {
+    if (!btn) return;
+    var h = root.classList.toggle("hide");
+    document.querySelectorAll(".a.on, .oa.on, .prog.on").forEach(function (a) { a.classList.remove("on"); });
+    document.querySelectorAll(".prog-btn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.innerHTML = ic("code") + "完整程序"; });
+    btn.innerHTML = h ? ic("eye") + "全部揭开" : ic("eyeoff") + "全部盖上";
+    btn.setAttribute("aria-pressed", h ? "false" : "true");
+    secs.forEach(syncSec);
+  }
+  if (btn) { btn.innerHTML = ic("eye") + "全部揭开"; btn.addEventListener("click", toggleAll); }
+
+  /* 当前读到哪一节：目录高亮，并记下来，下次打开可以接着读 */
+  var current = null;
+  function setCurrent(s) {
+    if (current === s) return;
+    current = s;
+    document.querySelectorAll(".toc a[data-id]").forEach(function (a) { a.classList.toggle("cur", a.dataset.id === s.id); });
+    if (ring) {
+      save("c-lesson-pos-" + ring, s.id);
+      save("c-lesson-last", { ring: ring, name: root.getAttribute("data-name"), sec: label(s) });
+    }
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target); });
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 上次读到哪：给一个「继续」 */
+  var resume = document.getElementById("resume");
+  if (resume && ring && !location.hash) {
+    var pos = load("c-lesson-pos-" + ring), target = pos && document.getElementById(pos);
+    if (target && secs.indexOf(target) > 1) {
+      resume.innerHTML = '<span>上次读到</span><a href="#' + pos + '">' + label(target) + ' →</a><button type="button">不用了</button>';
+      resume.classList.add("on");
+      resume.querySelector("a").addEventListener("click", function () { resume.classList.remove("on"); });
+      resume.querySelector("button").addEventListener("click", function () { resume.classList.remove("on"); });
+    }
+  }
+  /* 目录页：标出上次看的那一环 */
+  if (!ring) {
+    var last = load("c-lesson-last");
+    if (last && last.ring) {
+      var li = document.querySelector('.rings li[data-ring="' + last.ring + '"]');
+      if (li) {
+        li.classList.add("last");
+        if (last.sec) {
+          var p = document.createElement("p");
+          p.textContent = "上次读到：" + last.sec;
+          p.style.color = "var(--green)";
+          li.appendChild(p);
+        }
+      }
+    }
+  }
+
+  /* 阅读进度条、浮动按钮 */
+  var bar = document.getElementById("progress"), fab = document.getElementById("fab"), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + "%";
+    if (fab) fab.classList.toggle("on", window.scrollY > 500);
+    ticking = false;
+  }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+  var drawer = document.getElementById("drawer");
+  function closeDrawer() { if (drawer) drawer.classList.remove("on"); }
+  var top = document.getElementById("fab-top");
+  if (top) top.innerHTML = ic("up");
+  if (document.getElementById("fab-toc")) document.getElementById("fab-toc").innerHTML = ic("list");
+  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+  var ft = document.getElementById("fab-toc");
+  if (ft) ft.addEventListener("click", function () {
+    drawer.classList.add("on");
+    var cur = drawer.querySelector("a.cur");
+    if (cur) cur.scrollIntoView({ block: "center" });
+  });
+  if (drawer) {
+    drawer.querySelector(".shade").addEventListener("click", closeDrawer);
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeDrawer); });
+  }
+
+  /* 键盘：J 下一节，K 上一节，A 全部揭开 / 盖上，Esc 关目录 */
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "Escape") { closeDrawer(); return; }
+    var k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && secs.length) {
+      var i = current ? secs.indexOf(current) : -1;
+      var n = secs[Math.max(0, Math.min(secs.length - 1, i + (k === "j" ? 1 : -1)))];
+      if (n) { n.scrollIntoView({ behavior: "instant", block: "start" }); setCurrent(n); }
+    } else if (k === "a" && btn) {
+      toggleAll();
+    }
+  });
+
+  /* C 代码着色 */
+  var KW = /^(int|double|float|char|long|short|unsigned|signed|void|return|for|while|do|if|else|switch|case|break|continue|sizeof|struct|union|enum|typedef|static|extern|register|auto|const|default|goto|FILE|NULL|EOF)$/;
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(src) {
+    var out = "", re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|(\b\d+(?:\.\d*)?(?:[eE][-+]?\d+)?[fFlL]?\b)|([A-Za-z_]\w*)/gm, m, last = 0;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) out += '<span class="t-com">' + esc(t) + "</span>";
+      else if (m[2]) out += '<span class="t-str">' + esc(t) + "</span>";
+      else if (m[3]) out += '<span class="t-pre">' + esc(t) + "</span>";
+      else if (m[4]) out += '<span class="t-num">' + esc(t) + "</span>";
+      else if (KW.test(t)) out += '<span class="t-kw">' + t + "</span>";
+      else out += esc(t);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll("pre code.c").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  /* 复制：方便贴进 草稿.c 自己跑 */
+  document.querySelectorAll(".code").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.innerHTML = ic("copy") + "复制";
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      function done(msg) { b.innerHTML = ic("check") + msg; setTimeout(function () { b.innerHTML = ic("copy") + "复制"; }, 1400); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        done("已选中，按 Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(pre.textContent).then(function () { done("已复制"); }, fallback); }
+      catch (err) { fallback(); }
+    });
+    (box.querySelector(".hd") || box).appendChild(b);
+  });
+})();
+</script>

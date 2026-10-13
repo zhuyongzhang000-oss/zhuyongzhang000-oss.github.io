@@ -1,0 +1,15 @@
+{
+ "name": "讲义",
+ "short_name": "讲义",
+ "start_url": "./",
+ "display": "standalone",
+ "background_color": "#f6f3ec",
+ "theme_color": "#56707f",
+ "icons": [
+  {
+   "src": "icon.svg",
+   "sizes": "any",
+   "type": "image/svg+xml"
+  }
+ ]
+}
