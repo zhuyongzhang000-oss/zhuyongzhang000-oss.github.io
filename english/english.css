@@ -1,0 +1,49 @@
+/* 英语 · 写作词（公共部分在 kit/base.css） */
+.e-home { display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr); }
+.e-home > * { min-width: 0; }
+.e-home .side, .e-home .main { display: grid; gap: 14px; align-content: start; }
+@media (min-width: 900px) { .e-home { grid-template-columns: 360px minmax(0, 1fr); align-items: start; } }
+.e-go { flex-wrap: wrap; }
+.e-daily { padding: 0 4px; }
+
+/* 一个词一张卡：上面布面写中文，下面写英文 */
+.wcard { border-radius: var(--r); background: var(--tint); overflow: hidden; }
+.wcard .band { background: var(--cloth); background-image: var(--linen); color: var(--ink); padding: 18px 22px 18px; }
+.wcard .tag { font-size: 13px; letter-spacing: .16em; opacity: .85; }
+.wcard .zh { font-size: clamp(24px, 6vw, 30px); line-height: 1.45; margin: 10px 0 0; letter-spacing: .06em; color: var(--soft); font-weight: 500; }
+.wcard .en-q { font: 500 clamp(26px, 6.5vw, 34px)/1.35 var(--f-code); margin: 10px 0 0; color: var(--soft); }
+.wcard .body { padding: 18px 22px 20px; }
+.wcard .en-big { font: 500 26px/1.45 var(--f-code); margin: 0; color: var(--acc); word-break: break-word; }
+.wcard .zh-a { font-size: 22px; margin: 0; }
+.wnote { margin: 10px 0 0; font-size: 15px; color: var(--sub); line-height: 1.8; }
+.wcard .hint { font-size: 13.5px; color: var(--faint); margin: 0 0 10px; }
+.inputs { display: grid; gap: 10px; }
+.inputs input { width: 100%; font: 20px/1.4 var(--f-code); padding: 12px 14px; border-radius: var(--r-s); border: 1.5px solid var(--line);
+  background: var(--paper); outline: none; transition: border-color .2s; }
+.inputs input:focus { border-color: var(--acc); }
+.inputs input.ok { border-color: var(--ok); background: var(--okbg); }
+.inputs input.bad { border-color: var(--bad); }
+.ans { font: 600 21px/1.5 var(--f-code); margin: 0; word-break: break-word; }
+.diff { font: 16px/1.7 var(--f-code); color: var(--sub); margin: 0; word-break: break-word; }
+.diff ins { text-decoration: none; background: var(--badbg); color: var(--bad); border-radius: 3px; padding: 0 1px; }
+.diff del { text-decoration: line-through; color: var(--bad); }
+
+/* 词表、错词本 */
+.search { flex: 1; min-width: 160px; border: 1px solid var(--line); background: var(--paper); border-radius: 999px; padding: 8px 16px; outline: none; }
+.search:focus { border-color: var(--acc); }
+.wlist { display: grid; }
+.wrow { display: grid; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.2fr); gap: 2px 12px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); }
+.wlist .wrow, .done .wrow { grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); }
+.done .wlist { width: 100%; }
+.wrow .zh { font-size: 15.5px; min-width: 0; }
+.wrow .en { font: 15px/1.6 var(--f-code); border: 0; background: color-mix(in srgb, var(--acc) 12%, transparent); color: transparent;
+  border-radius: 4px; text-align: left; padding: 0 4px; cursor: pointer; user-select: none; min-width: 0; overflow-wrap: anywhere; }
+.wrow .en.on { color: var(--acc); background: none; user-select: text; }
+.wrow .sc { grid-column: 2 / -1; font-size: 12.5px; color: var(--faint); }
+.wlist .wrow .sc, .done .wrow .sc { grid-column: 1 / -1; }
+.wrow .sc s { color: var(--bad); }
+.wrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); align-self: center; }
+.wrow .dot.ok { background: var(--ok); }
+.wrow .dot.bad { background: var(--bad); }
+.wrow .dot.none { visibility: hidden; }
+@media (max-width: 560px) { .wrow { grid-template-columns: auto minmax(0, 1fr); } .wrow .en { grid-column: 2; } }
