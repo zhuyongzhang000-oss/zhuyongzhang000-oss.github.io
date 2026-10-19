@@ -20,21 +20,24 @@
   };
 
   /* ───── 存储：只在这台设备上 ───── */
-  const KEY = "zuowen-v1", SKEY = "zuowen-sess";
+  const KEY = "zuowen-v1", SKEY = "zuowen-sess", LKEY = "zuowen-sessions-by-layer";
   const store = {
     get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } },
   };
-  const DEFAULT_PREFS = { daily: 15, wmode: "type", pmode: "flip" };
+  const DEFAULT_PREFS = { daily: 15, wmode: "type", pmode: "flip", layer: 1 };
   let ST = fresh(store.get(KEY, null));
   function fresh(s) {
     s = s && typeof s === "object" ? s : {};
-    return { items: s.items || {}, days: s.days || {}, extra: s.extra || {}, prefs: { ...DEFAULT_PREFS, ...(s.prefs || {}) } };
+    const prefs = { ...DEFAULT_PREFS, ...(s.prefs || {}) };
+    if (![1, 2, 3].includes(prefs.layer)) prefs.layer = 1;
+    return { ...s, items: s.items || {}, days: s.days || {}, extra: s.extra || {}, prefs };
   }
   let warned = false;
   function save() { if (!store.set(KEY, ST) && !warned) { warned = true; toast("这个浏览器存不了进度（无痕模式？），关掉网页就没了", 4200); } }
   let sess = store.get(SKEY, null);
-  const saveSess = () => store.set(SKEY, sess);
+  let layerSessions = store.get(LKEY, {}) || {};
+  const saveSess = () => { layerSessions[ST.prefs.layer] = sess; store.set(SKEY, sess); store.set(LKEY, layerSessions); };
 
   /* ───── 日期：凌晨 4 点前算前一天 ───── */
   const ymd = t => t.getFullYear() + "-" + String(t.getMonth() + 1).padStart(2, "0") + "-" + String(t.getDate()).padStart(2, "0");
@@ -54,39 +57,92 @@
     SC = Object.fromEntries(D.scenes.map(s => [s.id, { ...s, items: [] }]));
     ITEMS = [];
     for (const sid of D.order) {
-      const add = (list, type) => list.filter(x => x.scene === sid).forEach(x => { const it = { ...x, type, part: SC[sid].part }; SC[sid].items.push(it); ITEMS.push(it); });
+      const add = (list, type) => list.filter(x => x.scene === sid).forEach(x => { const it = { ...x, type, part: SC[sid].part, level: x.level || (type === "w" ? 3 : ["t.letter", "t.static", "t.dynamic"].includes(x.id) ? 1 : 2) }; SC[sid].items.push(it); ITEMS.push(it); });
       add(D.words, "w"); add(D.patterns, "p"); add(D.templates, "t");
+      // Upgrade variants get separate IDs; learning the base sentence never marks the upgrade as known.
+      add(D.patterns.filter(p => p.upgradeId).map(p => ({ ...p, id: p.upgradeId, sourceId: p.id, level: 3, targetForm: "up", zh: p.zh + "（升级句）" })), "p");
     }
     ITEMS.forEach((it, i) => { it.i = i; });
     BY = Object.fromEntries(ITEMS.map(it => [it.id, it]));
     for (const t of D.templates) if (!BY[t.id]) BY[t.id] = { ...t, type: "t", part: t.part };
   }
   const rec = it => ST.items[it.id];
-  const isNew = it => !rec(it);
-  const isMastered = it => { const r = rec(it); return !!r && r.b >= 5; };
+  const STATUS = { unlearned: "未背", memorized: "背熟", used: "用对过" };
+  const layer = () => ST.prefs.layer;
+  const inLayer = it => it.level === layer();
+  const activeItems = () => ITEMS.filter(inLayer);
+  const stateOf = it => {
+    const r = rec(it);
+    if (!r) return "unlearned";
+    return STATUS[r.status] ? r.status : (r.r === 2 || r.b >= 5 ? "memorized" : "unlearned");
+  };
+  const errors = it => Math.max(0, Number(rec(it)?.x) || 0);
+  const isNew = it => !rec(it) || (!rec(it).n && stateOf(it) === "unlearned");
+  const isMastered = it => stateOf(it) !== "unlearned";
+  const LEVELS = [{ id: 1, name: "先背模板", desc: "书信模板 · 静态图模板 · 动态图模板" }, { id: 2, name: "补齐功能", desc: "功能句型 · 通知 · 特殊图表表达" }, { id: 3, name: "升级表达", desc: "升级词汇 · 短语与替换表达" }];
+  const layerInfo = () => (D.levels || LEVELS).find(x => x.id === layer());
+  const recordControl = it => `<button class="record-control" data-act="record" data-id="${esc(it.id)}" aria-label="管理${esc(it.name || it.zh)}的记录">${STATUS[stateOf(it)]} · 答错 ${errors(it)} 次 <span>管理 ›</span></button>`;
+
+  // Keep the old mixed session intact as a backup, then split it by layer.
+  function restoreSessions() {
+    if (sess?.ids && sess.ids.some(id => BY[id] && !inLayer(BY[id]))) {
+      if (!store.get("zuowen-sess-before-layers", null)) store.set("zuowen-sess-before-layers", sess);
+      for (const lv of [1, 2, 3]) {
+        const belongs = id => BY[id]?.level === lv;
+        const ids = sess.ids.filter(belongs);
+        if (!ids.length || layerSessions[lv]) continue;
+        layerSessions[lv] = { ...sess, ids, pos: sess.ids.slice(0, sess.pos || 0).filter(belongs).length,
+          lpos: sess.ids.slice(0, sess.lpos || 0).filter(belongs).length, log: (sess.log || []).filter(e => belongs(e.id)), layer: lv };
+      }
+      sess = layerSessions[layer()] || null;
+    } else if (!sess) sess = layerSessions[layer()] || null;
+    if (sess?.ids) sess.ids = sess.ids.filter(id => BY[id] && inLayer(BY[id]));
+    saveSess();
+  }
+  function switchLayer(next) {
+    if (![1, 2, 3].includes(next) || next === layer()) return;
+    saveSess(); ST.prefs.layer = next;
+    sess = layerSessions[next] || null; saveSess(); save();
+    go("#/"); toast(`已切到第 ${next} 层，原来的进度都保留了`);
+  }
+  function recordSheet(id) {
+    const it = BY[id];
+    if (!it || !inLayer(it)) return;
+    openSheet(`<h3>${esc(it.name || it.zh)}</h3><p class="sub">未背：还不能独立回忆；背熟：能独立默出；用对过：在作文里正确用过。</p>
+      <div class="status-options">${Object.entries(STATUS).map(([v, text]) => `<button class="btn${stateOf(it) === v ? " primary" : ""}" data-act="set-status" data-id="${esc(id)}" data-v="${v}" aria-pressed="${stateOf(it) === v}">${text}</button>`).join("")}</div>
+      <p class="sub" style="margin-top:16px">累计答错 ${errors(it)} 次。默写答错或点「不会／忘了」会自动加 1，第一次答错也计数。</p>
+      <div class="acts"><button class="btn small" data-act="add-error" data-id="${esc(id)}">作文里用错了 +1</button><button class="btn small" data-act="close">完成</button></div>`);
+  }
+  function editRecord(id, change) {
+    const it = BY[id]; if (!it || !inLayer(it)) return;
+    const before = rec(it) ? { ...rec(it) } : null;
+    ST.items[id] = { ...(before || { b: 0, n: 0, f: today(), d: addDays(today(), 1), x: 0 }), ...change, t: Date.now() };
+    save(); route(); recordSheet(id);
+  }
   const isWeak = it => { const r = rec(it); return !!r && r.x > 0 && r.b <= 1; };
   const isDue = (it, d = today()) => { const r = rec(it); return !!r && r.d <= d; };
   function dueList() {
     const d = today();
-    return ITEMS.filter(it => isDue(it, d)).sort((a, b) => (rec(a).d < rec(b).d ? -1 : rec(a).d > rec(b).d ? 1 : 0) || (rec(b).x - rec(a).x) || a.i - b.i);
+    return activeItems().filter(it => !isNew(it) && isDue(it, d)).sort((a, b) => (rec(a).d < rec(b).d ? -1 : rec(a).d > rec(b).d ? 1 : 0) || (rec(b).x - rec(a).x) || a.i - b.i);
   }
-  const learnedToday = () => { const d = today(); return ITEMS.filter(it => rec(it) && rec(it).f === d).length; };
+  const learnedToday = () => { const d = today(); return activeItems().filter(it => !isNew(it) && rec(it).f === d).length; };
   const quota = () => (ST.prefs.daily || 15) + (ST.extra[today()] || 0);
   function newList(scene) {
-    if (scene) return SC[scene].items.filter(isNew);
+    if (scene) return SC[scene].items.filter(inLayer).filter(isNew);
     const n = Math.max(0, quota() - learnedToday());
-    return n ? ITEMS.filter(isNew).slice(0, n) : [];
+    return n ? activeItems().filter(isNew).slice(0, n) : [];
   }
-  const weakList = () => ITEMS.filter(isWeak);
+  const weakList = () => activeItems().filter(isWeak);
 
   /* ───── 复习规则 ───── */
   const IV = [1, 3, 7, 14, 30, 60];
   function apply(prev, r, d) {
     const o = prev ? { ...prev } : { b: 0, f: d, n: 0, x: 0 };
-    o.n++; o.l = d; o.r = r; o.t = Date.now();
+    o.n = (o.n || 0) + 1; o.l = d; o.r = r; o.t = Date.now();
+    o.status = r === 2 ? (prev?.status === "used" ? "used" : "memorized") : "unlearned";
     if (r === 2) { o.b = Math.min((o.b || 0) + 1, IV.length); o.d = addDays(d, IV[o.b - 1]); }
     else if (r === 1) { o.b = Math.max(1, (o.b || 0) - 1); o.d = addDays(d, 1); }
-    else { if (prev) o.x = (o.x || 0) + 1; o.b = 0; o.d = addDays(d, 1); }
+    else { o.x = (o.x || 0) + 1; o.b = 0; o.d = addDays(d, 1); }
     return o;
   }
   function streak() {
@@ -192,9 +248,9 @@
   }
   function cmpSentence(p, typed) {
     const u = toks(typed, false);
-    for (const key of ["up", "base"]) for (const v of variants(p[key])) if (glob(toks(v, true), u)) return { match: key };
+    for (const key of (p.targetForm === "base" ? ["base"] : ["up", "base"])) for (const v of variants(p[key])) if (glob(toks(v, true), u)) return { match: key };
     let best = null;
-    for (const key of ["up", "base"]) for (const v of variants(p[key])) {
+    for (const key of (p.targetForm === "base" ? ["base"] : ["up", "base"])) for (const v of variants(p[key])) {
       const words = v.split(/\s+/).filter(Boolean), keys = words.map(w => toks(w, true).filter(x => x !== "\u0001"));
       const flat = keys.flat(), mk = lcsMarks(flat, u), ratio = mk.score / Math.max(1, flat.length);
       if (!best || ratio > best.ratio) {
@@ -266,69 +322,57 @@
 
   /* ───── 首页 ───── */
   function home() {
-    setBar(`<a class="pill" href="../" title="回讲义网站">${ICON.back}讲义</a>`, "作文背诵", `<a class="ib" href="#/find" aria-label="查">${ICON.find}</a>${menuBtn}`);
-    const d = today(), due = dueList(), nw = newList(), weak = weakList();
-    const total = ITEMS.length, learned = ITEMS.filter(it => !isNew(it)).length, mastered = ITEMS.filter(isMastered).length;
-    const next = ITEMS.find(isNew);
-    const what = due.length || nw.length ? [due.length ? `复习 ${due.length}` : "", nw.length ? `新学 ${nw.length}` : ""].filter(Boolean).join(" · ") : "今天的都背完了 ✓";
-    const where = nw.length ? `新内容：${[...new Set(nw.map(it => SC[it.scene].name))].join("、")}`
-      : next ? (due.length ? "今天的新内容学完了" : `明天接着学「${SC[next.scene].name}」`) : "全部内容都学过了，按时复习就行";
-    const day = ST.days[d] || { n: 0, ok: 0 }, sk = streak();
-    const week = Array.from({ length: 7 }, (_, k) => addDays(d, k - 6));
-    const resume = sess && !sessDone() ? `<div class="resume"><span>刚才的「${esc(sess.title)}」还没背完（${sess.phase === "learn" ? "先看一遍" : `${sess.pos} / ${sess.ids.length}`}）</span>
-      <a class="btn small primary" href="#/s">接着背</a><button class="link" data-act="drop">不要了</button></div>` : "";
-    const partHTML = D.parts.map(p => `<section class="part"><div class="part-h"><h2>${esc(p.name)}</h2><small>${esc(p.desc)}</small></div>
-      ${D.order.filter(sid => SC[sid].part === p.id).map(sid => {
-        const s = SC[sid], n = s.items.length, l = s.items.filter(it => !isNew(it)).length, m = s.items.filter(isMastered).length;
-        const nw2 = s.items.filter(it => it.type === "w").length, np = s.items.filter(it => it.type === "p").length;
-        return `<a class="srow" href="#/scene/${sid}"><span class="nm">${esc(s.name)}<small>${nw2 ? `${nw2} 词` : ""}${nw2 && np ? " · " : ""}${np ? `${np} 句` : ""}</small></span>
-          <span class="ct${l === n ? " done" : ""}">${l === n ? (m === n ? "全部掌握" : "学完了") : `${l} / ${n}`}</span>
-          <span class="prog"><i class="g" style="width:${(m / n) * 100}%"></i><i class="a" style="width:${((l - m) / n) * 100}%"></i></span></a>`;
-      }).join("")}</section>`).join("");
-    render(`<div class="home"><div class="side">
-      ${resume}
-      <section class="hero"><div class="band"><span class="eyebrow">今天 · ${md(d)}</span><span class="what">${esc(what)}</span><span class="where">${esc(where)}</span></div>
-        <div class="go">
-          ${due.length ? `<button class="btn primary" data-act="review">复习 <small>${due.length}</small></button>` : ""}
+    setBar(`<a class="pill" href="../" title="回讲义网站">${ICON.back}讲义</a>`, "作文背诵", `<a class="ib" href="#/find" aria-label="搜索">${ICON.find}</a>${menuBtn}`);
+    const d = today(), due = dueList(), nw = newList(), items = activeItems(), lv = layerInfo();
+    const mastered = items.filter(isMastered).length, used = items.filter(it => stateOf(it) === "used").length;
+    const next = items.find(isNew), weak = weakList(), day = ST.days[d] || { n: 0, ok: 0 }, sk = streak();
+    const resume = sess && !sessDone() ? `<div class="resume"><span>本层还有未完成的「${esc(sess.title)}」</span><a class="btn small primary" href="#/s">接着背</a></div>` : "";
+    const groups = D.parts.map(p => {
+      const scenes = D.order.filter(sid => SC[sid].part === p.id && SC[sid].items.some(it => inLayer(it) && it.type !== "t"));
+      return scenes.length ? `<section class="part"><div class="part-h"><h2>${esc(p.name)}</h2></div>${scenes.map(sid => {
+        const sc = SC[sid], list = sc.items.filter(inLayer), n = list.length, m = list.filter(isMastered).length;
+        return `<a class="srow" href="#/scene/${sid}"><span class="nm">${esc(sc.name)}</span><span class="ct">${m} / ${n} 背熟</span><span class="prog"><i class="g" style="width:${m / n * 100}%"></i></span></a>`;
+      }).join("")}</section>` : "";
+    }).join("");
+    render(`<section class="layer-card"><div class="layer-steps" aria-label="学习层级">${(D.levels || LEVELS).map(x => `<button data-act="layer" data-v="${x.id}" aria-pressed="${x.id === layer()}"><b>第${x.id}层</b><span>${esc(x.name)}</span></button>`).join("")}</div>
+      <div class="layer-summary"><div><h1>第 ${layer()} 层 · ${esc(lv.name)}</h1><p>${esc(lv.desc)}</p></div>
+        ${layer() < 3 ? `<button class="btn" data-act="layer" data-v="${layer() + 1}">进入下一层 →</button>` : `<span class="note">已到第3层，可随时回前层</span>`}</div>
+      <p class="note">只安排当前层的学习和复习。准备好了再手动进下一层，随时可以回来。</p></section>
+      <div class="home"><div class="side">${resume}
+      <section class="hero"><div class="band"><span class="eyebrow">今天 · ${md(d)} · 第${layer()}层</span>
+        <span class="what">${due.length || nw.length ? `复习 ${due.length} 条 · 新学 ${nw.length} 条` : "今天的都背完了 ✓"}</span>
+        <span class="where">${due.length ? "先巩固到期内容，再学新的" : nw.length ? "新内容先看一遍，再试着默出来" : next ? "本层今天的新学额度已完成" : "本层都学过了，可以巩固或手动进下一层"}</span></div>
+        <div class="go">${due.length ? `<button class="btn primary" data-act="review">开始复习 <small>${due.length}</small></button>` : ""}
           ${nw.length ? `<button class="btn${due.length ? "" : " primary"}" data-act="learn">学新的 <small>${nw.length}</small></button>` : ""}
-          ${!due.length && !nw.length && next ? `<button class="btn" data-act="more">再学 5 个</button>` : ""}
-          ${!due.length && !nw.length && !next && weak.length ? `<a class="btn" href="#/weak">练没记牢的</a>` : ""}
-        </div></section>
-      <a class="searchbox" href="#/find">${ICON.find}写作文卡住了？查中文或英文</a>
-      <p class="stats">${day.n ? `今天背了<b>${day.n}</b>次 · 记得<b>${Math.round((day.ok / day.n) * 100)}%</b>` : "今天还没背"}${sk > 1 ? ` · 连续<b>${sk}</b>天` : ""}</p>
-      <div class="week" title="最近 7 天">${week.map(x => `<i class="${ST.days[x] && ST.days[x].n ? "on" : ""}${x === d ? " today" : ""}" title="${md(x)}"></i>`).join("")}<span>最近 7 天</span></div>
-      ${weak.length ? `<div class="card"><h3>没记牢的 <b>${weak.length}</b></h3>
-        <div class="line">背过又忘了的，多练几遍；也可以复制给 GPT 出题练</div>
-        <div class="acts"><a class="btn small" href="#/weak">看看</a><button class="btn small" data-act="practice-weak">练一遍</button><button class="btn small" data-act="copy-weak">复制给 GPT</button></div></div>` : ""}
-      <div class="card"><h3>给 GPT 的资料</h3>
-        <div class="line">总路线 + 全部单词、句型、模板、例文，一次复制，贴到 ChatGPT 开始练作文。</div>
-        <div class="acts"><button class="btn small primary" data-act="copy-all">复制全部资料</button></div></div>
-      </div><div class="main">
-      <div class="card"><h3>进度 <b>${learned}</b><small>/ ${total} 条学过 · 掌握 ${mastered}</small></h3>
-        <div class="prog"><i class="g" style="width:${(mastered / Math.max(1, total)) * 100}%"></i><i class="a" style="width:${((learned - mastered) / Math.max(1, total)) * 100}%"></i></div>
-        <div class="legend"><span><i style="background:var(--ok)"></i>掌握（间隔到 30 天）</span><span><i style="background:var(--acc);opacity:.55"></i>学过、在复习</span><span><i style="background:var(--line)"></i>还没学</span></div></div>
-      ${partHTML}
-      <section class="part"><div class="part-h"><h2>模板</h2><small>整段背下来，考场上往空里填内容</small></div>
-        ${D.templates.map(t => `<a class="lrow" href="#/tpl/${encodeURIComponent(t.id)}"><span class="t">${esc(t.name)}</span><span class="m">${esc(PARTS[t.part].name)} · ${tplState(t)}</span></a>`).join("")}</section>
-      <section class="part"><div class="part-h"><h2>例文</h2><small>每句标了用的是哪个句型</small></div>
-        ${D.essays.map(e => `<a class="lrow" href="#/essay/${encodeURIComponent(e.id)}"><span class="t">${esc(e.name)}</span><span class="m">${esc(PARTS[e.part].name)}</span></a>`).join("")}</section>
-      <section class="part"><div class="part-h"><h2>要点</h2><small>审题、读图、检查、记不住怎么办</small></div>
-        ${D.guide.map(g => `<a class="lrow" href="#/guide/${encodeURIComponent(g.id)}"><span class="t">${esc(g.title)}</span><span class="m">${g.lines.length} 条</span></a>`).join("")}</section>
-      <p class="note">进度只存在这台设备的浏览器里，不进电脑上的学习台。换设备前在右上角「⋯」里复制进度，到新设备上粘贴。</p>
+          ${!nw.length && next ? `<button class="btn" data-act="more">再学 5 条</button>` : ""}
+          ${!due.length && !next ? `<button class="btn" data-act="practice-layer">巩固本层</button>` : ""}</div></section>
+      <p class="stats">今天背了 <b>${day.n}</b> 次${sk ? ` · 连续 <b>${sk}</b> 天` : ""}</p>
+      <div class="card ai-card"><h3>写完作文，让 AI 帮你改</h3><div class="line">带上已背熟的模板原文、可用句子和本层最易错的5条。先查任务，再查模板，最后查语法。</div>
+        <div class="acts"><button class="btn primary" data-act="copy-ai">复制给AI</button><button class="btn small" data-act="preview-ai">查看内容</button></div><p class="note">复制后贴给 AI，再附上作文题目和你的作文。</p></div>
+      ${weak.length ? `<a class="searchbox" href="#/weak">没记牢的 ${weak.length} 条 →</a>` : ""}
+      <a class="searchbox" href="#/find">${ICON.find}查本层的中文或英文</a>
+      <p class="note">进度自动保存在这个浏览器。右上角「⋯」可复制备份或导入旧进度。</p>
+      </div><div class="main"><div class="card"><h3>本层进度 <b>${mastered}</b><small>/ ${items.length} 条背熟（含用对过）</small></h3>
+        <div class="prog" role="progressbar" aria-label="本层背熟进度" aria-valuenow="${mastered}" aria-valuemin="0" aria-valuemax="${items.length}"><i class="g" style="width:${mastered / Math.max(1, items.length) * 100}%"></i></div>
+        <div class="status-counts"><span>未背 <b>${items.length - mastered}</b></span><span>背熟 <b>${mastered - used}</b></span><span>用对过 <b>${used}</b></span></div>
+        <p class="note">「用对过」在作文中正确使用后，点记录的「管理」标记。</p></div>
+      ${D.templates.some(t => inLayer(BY[t.id])) ? `<section class="part"><div class="part-h"><h2>本层模板</h2><small>点开就能看、背和标记</small></div>${D.templates.filter(t => inLayer(BY[t.id])).map(t => `<div class="template-row"><a class="lrow" href="#/tpl/${encodeURIComponent(t.id)}"><span class="t">${esc(t.name)}</span><span class="m">打开 →</span></a>${recordControl(BY[t.id])}</div>`).join("")}</section>` : ""}
+      ${groups}
+      <details class="extras"><summary>例文与写作要点</summary><p class="note">供写作时查阅，不加入复习队列。</p>${D.essays.map(e => `<a class="lrow" href="#/essay/${encodeURIComponent(e.id)}"><span class="t">${esc(e.name)}</span></a>`).join("")}<a class="lrow" href="#/guide"><span class="t">审题、读图与写完检查 →</span></a></details>
       </div></div>`);
   }
   function tplState(t) {
     const r = ST.items[t.id];
-    if (!r) return "还没背";
-    return r.d <= today() ? "今天该复习" : `${dayLabel(r.d)}复习`;
+    if (!r) return "未背 · 答错 0 次";
+    return `${STATUS[stateOf(t)]} · 答错 ${errors(t)} 次 · ${r.d <= today() ? "今天该复习" : `${dayLabel(r.d)}复习`}`;
   }
   const sessDone = () => !sess || !sess.ids.length || (sess.phase !== "learn" && sess.pos >= sess.ids.length);
 
   /* ───── 背诵 ───── */
   function start(kind, ids, title, back) {
-    ids = (ids || []).filter(id => BY[id]);
+    ids = (ids || []).filter(id => BY[id] && inLayer(BY[id]));
     if (!ids.length) { toast("没有要背的"); return; }
-    sess = { kind, title, ids, pos: 0, lpos: 0, phase: kind === "new" ? "learn" : "quiz", log: [], back: back || "#/" };
+    sess = { kind, title, layer: layer(), ids, pos: 0, lpos: 0, phase: kind === "new" ? "learn" : "quiz", log: [], back: back || "#/" };
     saveSess();
     go("#/s");
   }
@@ -341,7 +385,7 @@
     if (sess.phase === "learn") { learnCard(); return; }
     if (sess.pos >= sess.ids.length) { go("#/done"); return; }
     const it = BY[sess.ids[sess.pos]];
-    if (!it) { sess.ids.splice(sess.pos, 1); saveSess(); sessPage(); return; }
+    if (!it || !inLayer(it)) { sess.ids.splice(sess.pos, 1); saveSess(); sessPage(); return; }
     stage = "input";
     const n = sess.ids.length, c = [0, 0, 0];
     sess.log.forEach(e => c[e.r]++);
@@ -352,7 +396,7 @@
     else if (it.type === "p" && ST.prefs.pmode === "type") typedPattern(it);
     else flipCard(it);
   }
-  const tagOf = it => `${TYPE[it.type]} · ${SC[it.scene].name}${it.type === "p" ? ` · ${it.use}` : ""}`;
+  const tagOf = it => `第${layer()}层 · ${STATUS[stateOf(it)]} · 答错${errors(it)}次 · ${TYPE[it.type]} · ${SC[it.scene].name}${it.type === "p" ? ` · ${it.use}` : ""}`;
   const zhCls = s => (s.length > 15 ? "zh long" : "zh");
   const rateBtns = (labels = ["忘了", "模糊", "记得"]) => `<div class="rate">${labels.map((l, r) => `<button class="r${r}" data-act="rate" data-r="${r}">${l}<small>${r + 1}</small></button>`).join("")}</div>`;
   function wordAnswer(w, withEn = true) {
@@ -361,6 +405,7 @@
       ${w.tip ? `<p class="tip">${esc(w.tip)}</p>` : ""}`;
   }
   function patAnswer(p) {
+    if (p.targetForm === "base") return `<dl class="kv"><dt>功能句</dt><dd class="up">${dots(p.base)}${sayBtn(p.base)}</dd></dl>${p.tip ? `<p class="tip">${esc(p.tip)}</p>` : ""}`;
     return `<dl class="kv"><dt>升级</dt><dd class="up">${dots(p.up)}${sayBtn(p.up)}</dd><dt class="lo">保底</dt><dd class="base">${dots(p.base)}</dd></dl>
       ${p.tip ? `<p class="tip">${esc(p.tip)}</p>` : ""}`;
   }
@@ -393,7 +438,7 @@
 
   // 翻卡：先想，再看答案，自己评
   function flipCard(it) {
-    const hint = it.type === "w" ? "先在心里拼一遍（最好写在纸上），再看答案" : "先说出（或写出）英文句子，再看答案";
+    const hint = it.type === "w" ? "先在心里拼一遍（最好写在纸上），再看答案" : "先说出（或写出）本层英文句子，再看答案";
     render(`<article class="fc"><div class="band"><span class="tag">${esc(tagOf(it))}</span><p class="${zhCls(it.zh)}">${esc(it.zh)}</p></div>
       <div class="body" id="fb"><p class="hint">${hint}</p><button class="btn primary wide" data-act="flip">看答案</button></div></article>
       <p class="keys"><kbd>空格</kbd> 看答案 · <kbd>1</kbd> 忘了 <kbd>2</kbd> 模糊 <kbd>3</kbd> 记得 · <kbd>Ctrl</kbd>+<kbd>Z</kbd> 撤销</p>`, true);
@@ -412,8 +457,12 @@
   // 记下一次评分（练一练时只有「忘了」改复习时间）
   function rate(it, r, typed) {
     const d = today(), prev = ST.items[it.id] ? { ...ST.items[it.id] } : null;
-    const changed = sess.kind !== "practice" || r === 0;
-    if (changed) ST.items[it.id] = apply(prev, r, d);
+    const changed = true;
+    const scored = apply(prev, r, d);
+    if (sess.kind === "practice" && r !== 0 && prev) {
+      ST.items[it.id] = { ...prev, status: scored.status, t: scored.t };
+    } else ST.items[it.id] = scored;
+    if (it.type === "p" && r === 2) ST.items[it.id].knownForm = typed ? (cmpSentence(it, typed).match || "up") : (it.targetForm || "up");
     const day = ST.days[d] || (ST.days[d] = { n: 0, ok: 0 });
     day.n++; if (r === 2) day.ok++;
     sess.log.push({ id: it.id, r, prev, typed: typed || "", changed, d });
@@ -498,7 +547,7 @@
   // 句型：打字默写
   function typedPattern(p) {
     render(`<article class="fc"><div class="band"><span class="tag">${esc(tagOf(p))}</span><p class="${zhCls(p.zh)}">${esc(p.zh)}</p></div>
-      <div class="body"><p class="hint">写出英文句子。写不出升级的就写保底的；… 的地方可以不写</p>
+      <div class="body"><p class="hint">${p.targetForm === "base" ? "写出本层功能句，先把基础句用对；… 的地方可以不写" : "写出升级句。写不出就写保底句；… 的地方可以不写"}</p>
         <textarea class="typed" id="pt" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" aria-label="写英文句子"></textarea>
         <div class="acts" id="pa"><button class="btn primary" data-act="psubmit">对答案</button><button class="link" data-act="pgiveup">不会，看答案</button></div>
         <div id="pv"></div></div></article>
@@ -527,10 +576,10 @@
       return;
     }
     const c = cmpSentence(p, typed);
-    if (c.match === "up") {
+    if (c.match === "up" || (c.match === "base" && p.targetForm === "base")) {
       const e = rate(p, 2, typed);
       stage = "flash";
-      $("#pv").innerHTML = `<div class="verdict"><p class="res ok">✓ 完全正确</p><p class="cmp">${dots(p.up)}</p></div>`;
+      $("#pv").innerHTML = `<div class="verdict"><p class="res ok">✓ 完全正确</p><p class="cmp">${dots(p[c.match])}</p></div>`;
       timer = setTimeout(() => { if (stage === "flash" && sess.log[sess.log.length - 1] === e) nextCard(); }, 1200);
       return;
     }
@@ -584,7 +633,7 @@
     sess.log.forEach(e => c[e.r]++);
     const miss = sess.log.filter(e => e.r < 2), missIds = [...new Set(miss.map(e => e.id))];
     const nw = sess.kind !== "new" ? newList() : [];
-    const line = it => (it.type === "w" ? it.en + (it.alt ? `（记不住就用 ${it.alt}）` : "") : it.type === "p" ? it.up : "（模板）");
+    const line = it => (it.type === "w" ? it.en + (it.alt ? `（记不住就用 ${it.alt}）` : "") : it.type === "p" ? (it.targetForm === "base" ? it.base : it.up) : "（模板）");
     render(`<div class="done"><h2>${esc(sess.title)} · 背完了</h2>
       <div class="score">${c[2]}<small> / ${sess.log.length} 记得</small></div>
       <div class="kpis"><span class="ok">记得<b>${c[2]}</b></span><span class="mid">模糊<b>${c[1]}</b></span><span class="bad">忘了<b>${c[0]}</b></span></div>
@@ -607,24 +656,25 @@
     const s = SC[sid];
     if (!s) { go("#/"); return; }
     setBar(backBtn("#/"), `${PARTS[s.part].name} · ${s.name}`, menuBtn, true);
-    const ws = s.items.filter(it => it.type === "w"), ps = s.items.filter(it => it.type === "p"), ts = s.items.filter(it => it.type === "t");
-    const nw = s.items.filter(isNew), learned = s.items.filter(it => !isNew(it));
-    const dot = it => { const r = rec(it); return !r ? "" : isWeak(it) ? "w" : r.b >= 5 ? "m" : "l"; };
+    const list = s.items.filter(inLayer);
+    const ws = list.filter(it => it.type === "w"), ps = list.filter(it => it.type === "p"), ts = list.filter(it => it.type === "t");
+    const nw = list.filter(isNew), learned = list.filter(it => !isNew(it));
+    const dot = it => { const r = rec(it); return !r ? "" : isWeak(it) ? "w" : isMastered(it) ? "m" : "l"; };
     const hide = cover ? " hide" : "";
-    render(`<section class="shead"><div class="band"><span class="eyebrow">${esc(PARTS[s.part].name)} · ${s.items.length} 条 · 学过 ${learned.length}</span><p>${esc(s.note)}</p></div>
+    render(`<section class="shead"><div class="band"><span class="eyebrow">${esc(PARTS[s.part].name)} · 第${layer()}层 · ${list.length} 条 · 学过 ${learned.length}</span><p>${esc(s.note)}</p></div>
       <div class="go">${nw.length ? `<button class="btn primary" data-act="scene-learn" data-s="${sid}">学这里的新内容 <small>${nw.length}</small></button>` : ""}
         ${learned.length ? `<button class="btn${nw.length ? "" : " primary"}" data-act="scene-practice" data-s="${sid}">练一练 <small>${learned.length}</small></button>` : ""}
         <span class="sp"></span><button class="btn small" data-act="cover">${cover ? "显示英文" : "盖住英文"}</button></div></section>
-      <div class="${cover ? "cover" : ""}" id="sl">
+      ${!list.length ? `<p class="placeholder">这一板块在当前层没有内容。回首页切换层级后再查看。</p>` : ""}<div class="${cover ? "cover" : ""}" id="sl">
       ${ws.length ? `<h2 class="sec">单词 <small>${ws.length}</small></h2><div class="wl">${ws.map(w => `<div class="wr"><i class="dot ${dot(w)}"></i><span class="zh">${esc(w.zh)}</span>
         <span class="row2"><span class="en${hide}" data-act="peek">${esc(w.en)}</span>${w.alt ? `<span class="alt${hide}" data-act="peek"><b>记不住</b>${esc(w.alt)}</span>` : ""}</span>
-        <span class="more">${esc(w.ex)}${w.tip ? ` · <span class="w">${esc(w.tip)}</span>` : ""}</span></div>`).join("")}</div>` : ""}
+        <span class="more">${esc(w.ex)}${w.tip ? ` · <span class="w">${esc(w.tip)}</span>` : ""}</span>${recordControl(w)}</div>`).join("")}</div>` : ""}
       ${ps.length ? `<h2 class="sec">句型 <small>${ps.length}</small></h2><div class="pl">${ps.map(p => `<div class="pr"><i class="dot ${dot(p)}"></i><span class="use">${esc(p.use)}</span>
-        <span class="zh">${esc(p.zh)}</span><span class="up${hide}" data-act="peek"><span class="lab">升级</span>${dots(p.up)}</span>
-        <span class="base${hide}" data-act="peek"><span class="lab">保底</span>${dots(p.base)}</span>${p.tip ? `<span class="w">${esc(p.tip)}</span>` : ""}</div>`).join("")}</div>` : ""}
+        <span class="zh">${esc(p.zh)}</span><span class="up${hide}" data-act="peek"><span class="lab">${p.targetForm === "base" ? "功能句" : "升级"}</span>${dots(p.targetForm === "base" ? p.base : p.up)}</span>
+        ${p.targetForm === "base" ? "" : `<span class="base${hide}" data-act="peek"><span class="lab">保底</span>${dots(p.base)}</span>`}${p.tip ? `<span class="w">${esc(p.tip)}</span>` : ""}${recordControl(p)}</div>`).join("")}</div>` : ""}
       ${ts.length ? `<h2 class="sec">模板</h2>${ts.map(t => `<a class="lrow" href="#/tpl/${encodeURIComponent(t.id)}"><span class="t">${esc(t.name)}</span><span class="m">${tplState(t)}</span></a>`).join("")}` : ""}
       </div>
-      <p class="note">圆点：<span style="color:var(--acc)">●</span> 学过 · <span style="color:var(--ok)">●</span> 掌握 · <span style="color:var(--bad)">●</span> 背过又忘了。「练一练」只在忘了时改复习时间。</p>`, true);
+      <p class="note">每条记录可点「管理」修改状态。圆点：<span style="color:var(--acc)">●</span> 学过 · <span style="color:var(--ok)">●</span> 背熟 · <span style="color:var(--bad)">●</span> 背过又忘了。「练一练」只在忘了时改复习时间。</p>`, true);
   }
 
   /* ───── 模板 ───── */
@@ -655,13 +705,13 @@
   let tmode = "看";
   function tplPage(id) {
     const t = BY[id];
-    if (!t || t.type !== "t") { go("#/"); return; }
+    if (!t || t.type !== "t" || !inLayer(t)) { go("#/"); return; }
     setBar(backBtn("#/"), t.name, "", true);
     const r = ST.items[t.id];
     render(`<div class="tplbar" style="margin-bottom:12px"><div class="seg">${["看", "背"].map(x => `<button data-act="tmode" data-v="${x}" aria-pressed="${tmode === x}">${x}</button>`).join("")}</div>
         <span class="sp"></span><button class="btn small" data-act="copy-tpl" data-id="${esc(t.id)}">复制模板</button></div>
       <article class="fc"><div class="band"><span class="tag">模板 · ${esc(PARTS[t.part].name)}</span><p class="name">${esc(t.name)}</p></div>
-      <div class="body"><p class="when">${esc(t.when)}</p>
+      <div class="body">${recordControl(t)}<p class="when">${esc(t.when)}</p>
         ${tmode === "背" ? `<p class="hint">灰块是要背的固定句：先说出来，再点开对照；黄框是考场上按题目填的内容</p>` : `<p class="hint">黄框是考场上按题目填的内容，其余是要背下来的固定句</p>`}
         <div class="tpl">${tplHTML(t, tmode === "背" ? "mask" : "show")}</div>
         ${tmode === "背" ? `<div class="tplbar"><span class="cnt" id="tcnt"></span><span class="sp"></span><button class="btn small" data-act="tall">全部揭开</button></div>
@@ -671,7 +721,8 @@
     onKey = tmode === "背" ? e => { if (e.key === " ") { e.preventDefault(); tall(); } } : null;
   }
   function trate(id, r) {
-    const t = BY[id], d = today(), prev = ST.items[id] ? { ...ST.items[id] } : null;
+    const t = BY[id]; if (!t || !inLayer(t)) return;
+    const d = today(), prev = ST.items[id] ? { ...ST.items[id] } : null;
     ST.items[id] = apply(prev, r, d);
     const day = ST.days[d] || (ST.days[d] = { n: 0, ok: 0 });
     day.n++; if (r === 2) day.ok++;
@@ -706,14 +757,14 @@
   }
   function findResults() {
     const box = $("#fr"), s = q.trim().toLowerCase();
-    if (!s) { box.innerHTML = `<p class="placeholder">写作文时想不起某个词或句子，在这里查。<br>每个词都附了「记不住就用」的简单说法。</p>`; return; }
+    if (!s) { box.innerHTML = `<p class="placeholder">只搜索当前第${layer()}层。写作文时想不起某个词或句子，在这里查。<br>每个词都附了「记不住就用」的简单说法。</p>`; return; }
     const mark = t => { const i = t.toLowerCase().indexOf(s); return i < 0 ? dots(t) : dots(t.slice(0, i)) + `<mark>${dots(t.slice(i, i + s.length))}</mark>` + dots(t.slice(i + s.length)); };
-    const hits = ITEMS.filter(it => it.type !== "t" && [it.zh, it.en, it.alt, it.up, it.base, it.use].some(x => x && x.toLowerCase().includes(s)));
-    box.innerHTML = hits.length ? `<p class="note">${hits.length} 条</p>` + hits.slice(0, 80).map(it => it.type === "w"
+    const hits = activeItems().filter(it => [it.zh, it.en, it.alt, it.targetForm === "base" ? null : it.up, it.base, it.use, it.name, it.when].some(x => x && x.toLowerCase().includes(s)));
+    box.innerHTML = hits.length ? `<p class="note">${hits.length} 条</p>` + hits.slice(0, 80).map(it => it.type === "t" ? `<div class="hit"><a href="#/tpl/${encodeURIComponent(it.id)}">${mark(it.name)}</a><span class="m">${mark(it.when)}</span>${recordControl(it)}</div>` : it.type === "w"
       ? `<div class="hit"><span class="zh">${mark(it.zh)}</span><span class="en">${mark(it.en)}</span>${it.alt ? `<span class="alt"><b>记不住就用</b>${mark(it.alt)}</span>` : ""}
-        <span class="m">${esc(it.ex)} · <a href="#/scene/${it.scene}">${esc(SC[it.scene].name)}</a></span></div>`
-      : `<div class="hit"><span class="zh">${mark(it.zh)}</span><span class="en">${mark(it.up)}</span><span class="alt"><b>保底</b>${mark(it.base)}</span>
-        <span class="m">句型 · ${esc(it.use)} · <a href="#/scene/${it.scene}">${esc(SC[it.scene].name)}</a></span></div>`).join("")
+        <span class="m">${esc(it.ex)} · <a href="#/scene/${it.scene}">${esc(SC[it.scene].name)}</a></span>${recordControl(it)}</div>`
+      : `<div class="hit"><span class="zh">${mark(it.zh)}</span><span class="en">${mark(it.targetForm === "base" ? it.base : it.up)}</span>${it.targetForm === "base" ? "" : `<span class="alt"><b>保底</b>${mark(it.base)}</span>`}
+        <span class="m">句型 · ${esc(it.use)} · <a href="#/scene/${it.scene}">${esc(SC[it.scene].name)}</a></span>${recordControl(it)}</div>`).join("")
       : `<p class="placeholder">没找到「${esc(q.trim())}」。换个说法试试，比如只输两个字。</p>`;
   }
 
@@ -725,8 +776,8 @@
       <div class="acts"><button class="btn primary small" data-act="practice-weak"${ws.length ? "" : " disabled"}>练一遍</button>
         <button class="btn small" data-act="copy-weak"${ws.length ? "" : " disabled"}>复制给 GPT 出题</button></div></div>
       ${ws.length ? `<div class="blist" style="margin-top:10px">${ws.map(it => { const r = rec(it); return `<div class="brow"><span class="zh">${esc(it.type === "t" ? it.name : it.zh)}</span>
-        <span class="en">${dots(it.type === "w" ? it.en : it.type === "p" ? it.up : "")}</span>
-        <span class="m">忘过 ${r.x} 次 · ${esc(SC[it.scene].name)} · ${r.d <= today() ? "今天该复习" : `${dayLabel(r.d)}复习`}</span></div>`; }).join("")}</div>`
+        <span class="en">${dots(it.type === "w" ? it.en : it.type === "p" ? (it.targetForm === "base" ? it.base : it.up) : "")}</span>
+        <span class="m">答错 ${errors(it)} 次 · ${esc(SC[it.scene].name)} · ${r.d <= today() ? "今天该复习" : `${dayLabel(r.d)}复习`}</span>${recordControl(it)}</div>`; }).join("")}</div>`
       : `<p class="placeholder">现在没有。背过又忘了的会出现在这里。</p>`}`, true);
   }
 
@@ -739,26 +790,35 @@
   }
 
   /* ───── 给 GPT 的文字 ───── */
-  function gptAll() {
-    const L = [...D.gpt, "", "【讲义】（格式：中文：想用的词 → 记不住就用｜例子）"];
-    for (const part of D.parts) {
-      L.push("", `======== ${part.name}（${part.desc}）========`);
-      for (const sid of D.order) {
-        const s = SC[sid];
-        if (s.part !== part.id) continue;
-        L.push("", `■ ${s.name}`, s.note);
-        const ws = s.items.filter(it => it.type === "w"), ps = s.items.filter(it => it.type === "p");
-        if (ws.length) { L.push("单词："); ws.forEach(w => L.push(`- ${w.zh}：${w.en}${w.alt ? ` → ${w.alt}` : ""}｜${w.ex}${w.tip ? `（${w.tip}）` : ""}`)); }
-        if (ps.length) { L.push("句型："); ps.forEach(p => L.push(`- 【${p.use}】${p.zh}`, `  升级：${p.up}`, `  保底：${p.base}`)); }
+  function gptProgress() {
+    const known = ITEMS.filter(isMastered), templates = known.filter(it => it.type === "t");
+    const weak = activeItems().filter(it => errors(it) > 0).sort((a, b) => errors(b) - errors(a) || (rec(b)?.t || 0) - (rec(a)?.t || 0) || a.i - b.i).slice(0, 5);
+    const L = ["请帮我批改考研英语二作文。以下是我的实际背诵进度，请严格遵守。", "", `【当前层】第${layer()}层：${layerInfo().name}（${layerInfo().desc}）。只安排当前层的复习。`, "", "【批改规则：严格按顺序】",
+      "1. 先查漏任务：请先读取题目和我的作文；缺少任一项就先向我要。逐项核对题目任务及每个子任务、对象、格式、图表数据与单位。漏了什么先用中文列出来。",
+      "2. 再查模板用法：检查书信/通知格式、语气、静态/动态图选择、段落作用、填空是否切题。只用下方已背熟的模板和句子修改，不能引入未背过的句式、升级词句或整篇新范文。模板里的示例不等于题目事实，填空只用题目内容和简单词；允许必要的人称、时态、主谓一致调整。",
+      "3. 最后查语法：逐句检查谓语、时态、主谓一致、单复数、冠词、介词和拼写，做最小必要修改。按「原句 → 修改 → 中文原因 → 使用的已背素材ID」说明。",
+      "4. 只用我背过的句子改。下方最易错条目仅用于提醒，不代表我已背熟；不要把它们当成可用素材。没有可用的已背句子时，用中文指出缺口，不替我写陌生英文。没有已背熟模板时也不要自行补模板。",
+      "5. 最后列出本次确实用对的素材ID，方便我回网站手动标「用对过」；不要把只出现过或被你改好的句子算作我已用对。", "", "【已背熟的模板原文（含用对过；花括号为待填内容）】"];
+    if (!templates.length) L.push("暂无。请不要假定我背过任何完整模板。");
+    templates.forEach(t => L.push(`\n■ ${t.name} [${t.id}] · ${STATUS[stateOf(t)]}`, ...t.paras.map(p => typeof p === "string" ? p : p.t)));
+    L.push("", "【已背熟的句子/词汇：唯一可用素材清单（也含此前层级）】");
+    const other = known.filter(it => it.type !== "t");
+    if (!other.length) L.push("暂无独立句型或词汇。仅可使用上面的已背熟模板固定句。");
+    other.forEach(it => {
+      if (it.type === "w") L.push(`- [${it.id}] ${it.zh}：${it.en}`);
+      else {
+        const form = rec(it)?.knownForm || "up";
+        L.push(`- [${it.id}] ${it.zh}：${form === "base" ? it.base : form === "both" ? `${it.up} / ${it.base}` : it.up}`);
       }
-    }
-    L.push("", "【模板】（____ 是考场上按题目填的内容）");
-    D.templates.forEach(t => L.push("", `■ ${t.name}：${t.when}`, tplPlain(t)));
-    L.push("", "【例文】（按真题风格自拟）");
-    D.essays.forEach(e => L.push("", `■ ${e.name}`, `题目：${e.prompt}`, ...e.paras.map(p => p.map(x => x[0]).join(" "))));
-    L.push("", "【要点】");
-    D.guide.forEach(g => L.push("", `■ ${g.title}`, ...g.lines.map(l => `- ${l}`)));
+    });
+    L.push("", `【当前层最易错的${weak.length}条（最多5条，按累计答错次数排序）】`);
+    if (!weak.length) L.push("暂无答错记录。不虚构错题。");
+    weak.forEach((it, i) => L.push(`${i + 1}. [${it.id}] ${it.name || it.zh} · 答错${errors(it)}次 · ${STATUS[stateOf(it)]}${!isMastered(it) ? "（未背熟，不可作为改写素材）" : ""}`));
+    L.push("", "【作文题目】", "（在这里粘贴题目；图表题请附图或完整数据）", "", "【我的作文】", "（在这里粘贴作文）");
     return L.join("\n");
+  }
+  function previewAI() {
+    openSheet(`<h3>复制给AI的内容</h3><p class="sub">这份资料随你的背诵进度更新。复制后附上题目和作文即可。</p><textarea id="ai-text" readonly aria-label="AI批改资料">${esc(gptProgress())}</textarea><div class="acts" style="margin-top:12px"><button class="btn primary" data-act="copy-ai">复制给AI</button><button class="btn" data-act="close">关闭</button></div>`);
   }
   function gptList(ids, what) {
     const L = [`下面是我背考研英语作文素材时${what}的 ${ids.length} 条。请用它们给我出中译英小练习：一次只出一句，等我答完再批改；批改时指出错在哪，并告诉我记不住时可以用哪个简单说法。`, ""];
@@ -766,7 +826,7 @@
       const it = BY[id];
       if (!it) return;
       if (it.type === "w") L.push(`- 单词：${it.zh} → ${it.en}${it.alt ? `（记不住就用 ${it.alt}）` : ""}`);
-      else if (it.type === "p") L.push(`- 句型：${it.zh} → ${it.up}（保底：${it.base}）`);
+      else if (it.type === "p") L.push(`- 句型：${it.zh} → ${it.targetForm === "base" ? it.base : it.up}`);
       else L.push(`- 模板：${it.name}`, tplPlain(it));
     });
     return L.join("\n");
@@ -785,7 +845,7 @@
       <p class="sub">进度只存在这台设备的浏览器里。换手机或换浏览器前，先「复制进度」发给自己，到新设备上「粘贴进度」。</p>
       <div class="acts"><button class="btn small" data-act="export">复制进度</button><button class="btn small" data-act="import">粘贴进度</button><button class="link danger" data-act="reset">清空进度</button></div>
       <h3>怎么背</h3>
-      <p class="sub">新内容先看一遍再测。测完自己评：记得 → 1、3、7、14、30、60 天后再背；模糊 → 明天再背；忘了 → 明天从头来。单词写出「记不住就用」的替换词算模糊——考场上能用，但还要记升级写法。间隔到 30 天算掌握。</p>
+      <p class="sub">新内容先看一遍再测。测完自己评：记得 → 1、3、7、14、30、60 天后再背；模糊 → 明天再背；忘了 → 明天从头来。单词写出「记不住就用」的替换词算模糊——考场上能用，但还要记升级写法。点「记得／能默出来」会标成背熟；忘了会回到未背并累计答错次数。作文里正确用过后，在「管理」里手动标「用对过」。只复习当前层，点击层级可切换，进度保留。</p>
       <div class="acts"><button class="btn wide" data-act="close">好了</button></div>`);
   }
   function importSheet() {
@@ -797,7 +857,7 @@
   function importOk() {
     let o;
     try { o = JSON.parse($("#imp").value.trim()); } catch (e) { toast("这段文字不对，要整段复制过来"); return; }
-    if (!o || o.app !== "zuowen" || typeof o.items !== "object") { toast("这不是作文背诵的进度"); return; }
+    if (!o || o.app !== "zuowen" || !o.items || typeof o.items !== "object" || Array.isArray(o.items)) { toast("这不是作文背诵的进度"); return; }
     let n = 0;
     for (const [id, r] of Object.entries(o.items)) {
       if (!r || typeof r !== "object" || !r.d) continue;
@@ -808,6 +868,9 @@
       const mine = ST.days[d];
       if (!mine || (v.n || 0) > mine.n) ST.days[d] = { n: v.n || 0, ok: v.ok || 0 };
     }
+    if (o.prefs && [1, 2, 3].includes(o.prefs.layer) && o.prefs.layer !== layer()) {
+      saveSess(); ST.prefs.layer = o.prefs.layer; sess = layerSessions[layer()] || null; saveSess();
+    }
     save(); closeSheet();
     toast(`合并好了，更新了 ${n} 条`);
     route();
@@ -817,13 +880,20 @@
   /* ───── 点击 ───── */
   const ACT = {
     menu,
+    layer: el => switchLayer(+el.dataset.v),
+    record: el => recordSheet(el.dataset.id),
+    "set-status": el => { const v = el.dataset.v; if (STATUS[v]) { const it = BY[el.dataset.id]; editRecord(el.dataset.id, { status: v, ...(it?.type === "p" && v !== "unlearned" ? { knownForm: it.targetForm || "up" } : {}) }); } },
+    "add-error": el => { const it = BY[el.dataset.id]; if (it) editRecord(it.id, { x: errors(it) + 1, status: "unlearned", b: 0, d: addDays(today(), 1) }); },
+    "practice-layer": () => start("practice", activeItems().filter(it => !isNew(it)).map(it => it.id), "巩固本层"),
+    "copy-ai": async () => { if (await copyText(gptProgress())) toast("已复制，贴给 AI 后附上题目和作文"); else previewAI(); },
+    "preview-ai": previewAI,
     close: closeSheet,
     review: startReview,
     learn: () => startNew(),
     more: () => { const d = today(); ST.extra[d] = (ST.extra[d] || 0) + 5; save(); home(); },
     drop: () => { sess = null; saveSess(); home(); },
     "scene-learn": el => startNew(el.dataset.s),
-    "scene-practice": el => start("practice", SC[el.dataset.s].items.filter(it => !isNew(it)).map(it => it.id), `练一练 · ${SC[el.dataset.s].name}`, `#/scene/${el.dataset.s}`),
+    "scene-practice": el => start("practice", SC[el.dataset.s].items.filter(inLayer).filter(it => !isNew(it)).map(it => it.id), `练一练 · ${SC[el.dataset.s].name}`, `#/scene/${el.dataset.s}`),
     "practice-weak": () => start("practice", weakList().map(it => it.id), "练没记牢的", "#/weak"),
     again: () => { const ids = [...new Set(sess.log.filter(e => e.r < 2).map(e => e.id))]; start("practice", ids, "再练没记住的", sess.back); },
     lnext: () => lmove(1), lprev: () => lmove(-1), lgo,
@@ -837,7 +907,6 @@
     peek: el => { if ($("#sl.cover")) el.classList.toggle("hide"); },
     labels: () => { labels = !labels; route(); },
     say: el => say(el.dataset.t),
-    "copy-all": async () => copied(await copyText(gptAll())),
     "copy-weak": async () => copied(await copyText(gptList(weakList().map(it => it.id), "背过又忘了"))),
     "copy-miss": async () => copied(await copyText(gptList([...new Set(sess.log.filter(e => e.r < 2).map(e => e.id))], "这一轮没记住"))),
     "copy-tpl": async el => toast(await copyText(tplPlain(BY[el.dataset.id])) ? "模板复制好了" : "复制不了"),
@@ -851,12 +920,12 @@
       try { if (t) localStorage.setItem("xuexi-theme", t); else localStorage.removeItem("xuexi-theme"); } catch (e) { /* */ }
       menu();
     },
-    export: async () => toast(await copyText(JSON.stringify({ app: "zuowen", at: new Date().toISOString(), items: ST.items, days: ST.days })) ? "进度复制好了，发给自己，到新设备上粘贴" : "复制不了"),
+    export: async () => toast(await copyText(JSON.stringify({ ...ST, app: "zuowen", version: 2, at: new Date().toISOString() })) ? "进度复制好了，发给自己，到新设备上粘贴" : "复制不了"),
     import: importSheet,
     "import-ok": importOk,
     reset: el => {
       if (Date.now() - resetArm > 3000) { resetArm = Date.now(); el.textContent = "再点一次确认清空"; return; }
-      ST = fresh({ prefs: ST.prefs }); save(); sess = null; saveSess(); closeSheet(); toast("进度清空了"); go("#/");
+      ST = fresh({ prefs: ST.prefs }); save(); sess = null; layerSessions = {}; saveSess(); closeSheet(); toast("进度清空了"); go("#/");
     },
   };
   document.addEventListener("click", e => {
@@ -894,7 +963,7 @@
     (PAGES[page] || home)(arg);
   }
   window.addEventListener("hashchange", route);
-  window.addEventListener("storage", e => { if (e.key === KEY) { ST = fresh(store.get(KEY, null)); if (cur !== "#/s") route(); } });   // 另一个标签页背过了
+  window.addEventListener("storage", e => { if (e.key === KEY) { ST = fresh(store.get(KEY, null)); sess = store.get(SKEY, null); layerSessions = store.get(LKEY, {}) || {}; restoreSessions(); route(); } });   // 另一个标签页背过了
   document.addEventListener("visibilitychange", () => { if (!document.hidden && D && (cur === "" || cur === "#/" || cur === "#")) home(); });   // 隔夜回来，「今天」要换
 
   async function boot() {
@@ -908,7 +977,11 @@
       render(`<p class="placeholder">内容没读出来${navigator.onLine === false ? "（没网，这台设备上还没存过）" : ""}。<br><button class="btn" onclick="location.reload()">再试一次</button></p>`);
       return;
     }
-    if (sess && sess.ids) sess.ids = sess.ids.filter(id => BY[id]);
+    // Preserve an exact, one-time copy before adding any new progress fields.
+    if (!store.get("zuowen-v1-before-layers", null)) {
+      const old = store.get(KEY, null); if (old) store.set("zuowen-v1-before-layers", old);
+    }
+    restoreSessions();
     route();
     if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("../sw.js").catch(() => {});   // 讲义网站的离线缓存，看过一次没网也能背
   }
