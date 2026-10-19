@@ -4,7 +4,7 @@
     {
       "id": 1,
       "name": "先背模板",
-      "desc": "书信模板 · 静态图模板 · 动态图模板"
+      "desc": "书信模板 · 静态图模板 · 调查图模板 · 动态图模板"
     },
     {
       "id": 2,
@@ -37,7 +37,7 @@
     "upgrade"
   ],
   "scenes": [
-    {"id": "frame", "part": "小", "name": "书信框架", "note": "称呼 → 第一句说目的 → 正文（任务1、任务2）→ 结尾 → 落款。朋友用友好语气，教授、机构用正式语气。不写自己的名字，用 Li Ming；不写地址。"},
+    {"id": "frame", "part": "小", "name": "书信框架", "note": "称呼 → 第一句说目的 → 正文（任务1、任务2）→ 结尾 → 落款。朋友用友好语气，教授、机构用正式语气。署名用题目指定的名字（2013 年起都是 Li Ming，2010–2012 年是 Zhang Wei；通知不署个人名）；不写地址。"},
     {"id": "time", "part": "小", "name": "时间地点", "note": "at + 钟点（at 3 p.m.）；on + 星期 / 日期（on Sunday, on May 1st）；in + 月 / 年 / 上下午（in May, in the morning）；next Friday、this weekend、tomorrow 前面不加介词。"},
     {"id": "intro", "part": "小", "name": "介绍细节", "note": "最常考（17 年里有 10 年）。先总后分：时间地点 → 内容 → 安排 → 要求。每句话都要有动词。"},
     {"id": "invite", "part": "小", "name": "邀请参加", "note": "邀请四件套：邀请 + 理由 + 怎么参加 + 期待回复。招募志愿者也算这一类，2015 年考的是通知（notice），格式看「通知模板」。"},
@@ -51,7 +51,7 @@
     {"id": "upgrade", "part": "通用", "name": "升级替换", "note": "左边是升级写法，「记不住就用」是保底写法。会写升级的就用，拿不准就用保底的——简单词写对不扣分，难词拼错才扣分。"}
   ],
   "guide": [
-    {"id": "g.exam", "title": "考试要求", "lines": ["小作文：10 分，约 100 词，书信、邮件或通知，每题两个编号任务。不写自己的名字，用 Li Ming；不写地址。建议 15–20 分钟。", "大作文：15 分，约 150 词，看图表 → 描述 → 解释原因或意义 → 评论或建议。建议约 30 分钟。", "得分关键（按重要性）：任务完整 → 句子正确 → 格式语气合适 → 结构清楚 → 表达丰富。"]},
+    {"id": "g.exam", "title": "考试要求", "lines": ["小作文：10 分，约 100 词，书信、邮件或通知，每题两个编号任务。署名用题目指定的名字（2013 年起是 Li Ming，2010–2012 年是 Zhang Wei），通知不写个人名和校名；不写地址。建议 15–20 分钟。", "大作文：15 分，约 150 词，看图表 → 描述 → 解释原因或意义 → 评论或建议。建议约 30 分钟。", "得分关键（按重要性）：任务完整 → 句子正确 → 格式语气合适 → 结构清楚 → 表达丰富。"]},
     {"id": "g.shenti", "title": "小作文 · 审题五问", "lines": ["我是谁？（学生、志愿者、组织者……）", "写给谁？（朋友 → 友好；教授、公司、机构 → 正式）", "为什么写？（邀请、建议、道歉……）", "任务1 要做什么？里面有几个动作？", "任务2 要做什么？里面有几个动作？——写完对照任务逐项打勾，最常见的失分是漏掉第二个动作。"]},
     {"id": "g.letter", "title": "小作文 · 高频易错", "lines": ["每句话都要有动词：It is very long.（不能写 It very long.）", "will be held（不是 will be hold）", "take part in / participate in（in 不能漏）；invite sb. to do（to 不能漏）", "look forward to + doing；suggest 后面不接 sb. to do；advice 不可数", "the number of + 复数名词，谓语用单数 is", "人名、地名、星期、月份首字母大写"]},
     {"id": "g.dutu", "title": "大作文 · 读图五问", "lines": ["图在讲什么、讲谁？（看标题）", "单位是什么？（%、人数、万辆……）", "一个时间点还是多个？（一个 → 静态写占比；多个 → 动态写变化）", "最大、最小、差距最大的是哪个？", "各项加起来是 100% 吗？（不是 → 可能是多选，不能说「合计」）"]},
@@ -61,8 +61,8 @@
   ],
   "words": [
     {"id": "w.frame.dear", "level": 3, "scene": "frame", "zh": "（信的称呼）尊敬的先生 / 女士", "en": "Dear Sir or Madam,", "ans": "Dear Sir or Madam", "alt": "", "ex": "写给公司、机构、编辑，不知道对方名字时用", "tip": "Sir、Madam 首字母大写，后面加逗号"},
-    {"id": "w.frame.sincerely", "level": 3, "scene": "frame", "zh": "（正式信结尾）此致敬礼", "en": "Yours sincerely,", "ans": "Yours sincerely|Sincerely yours", "alt": "Sincerely,", "altAns": "Sincerely", "ex": "Yours sincerely, 下一行写 Li Ming", "tip": "写给教授、机构用它；写给朋友用 Best wishes,"},
-    {"id": "w.frame.bestwishes", "level": 3, "scene": "frame", "zh": "（给朋友的结尾）祝好", "en": "Best wishes,", "ans": "Best wishes", "alt": "Yours,", "altAns": "Yours", "ex": "Best wishes, 下一行写 Li Ming", "tip": "朋友、同学、留学生都用它"},
+    {"id": "w.frame.sincerely", "level": 3, "scene": "frame", "zh": "（正式信结尾）此致敬礼", "en": "Yours sincerely,", "ans": "Yours sincerely|Sincerely yours", "alt": "Sincerely,", "altAns": "Sincerely", "ex": "Yours sincerely, 下一行写题目指定的名字（近年都是 Li Ming）", "tip": "写给教授、机构用它；写给朋友用 Best wishes,"},
+    {"id": "w.frame.bestwishes", "level": 3, "scene": "frame", "zh": "（给朋友的结尾）祝好", "en": "Best wishes,", "ans": "Best wishes", "alt": "Yours,", "altAns": "Yours", "ex": "Best wishes, 下一行写题目指定的名字（近年都是 Li Ming）", "tip": "朋友、同学、留学生都用它"},
     {"id": "w.frame.lookforward", "level": 3, "scene": "frame", "zh": "期待（做某事）", "en": "look forward to doing", "ans": "look forward to", "alt": "hope to + 动词原形", "altAns": "hope to", "ex": "I am looking forward to your reply.", "tip": "to 是介词，后面接名词或 doing，不接动词原形"},
     {"id": "w.frame.reply", "level": 3, "scene": "frame", "zh": "回复", "en": "reply to", "ans": "reply to|reply", "alt": "answer / write back", "ex": "Please reply to me before Friday.", "tip": "回复某人 reply to sb.；名词：your reply"},
     {"id": "w.frame.contact", "level": 3, "scene": "frame", "zh": "联系（某人）", "en": "contact", "alt": "call / email", "ex": "Please contact me at 13800000000.", "tip": "contact 后面直接跟人，不加 with"},
@@ -261,6 +261,9 @@
     {"id": "p.chart.twice", "level": 2, "targetForm": "base", "upgradeId": "p.chart.twice.up", "scene": "chart", "use": "倍数", "zh": "选择 A 的人数是选择 B 的两倍。", "up": "The number of people choosing A is twice that of B.", "base": "A is 40%, while B is only 20%.", "tip": "记不住倍数句，直接报两个数也行"},
     {"id": "p.chart.majority", "level": 2, "targetForm": "base", "upgradeId": "p.chart.majority.up", "scene": "chart", "use": "多数", "zh": "大多数受访者更喜欢网上购物。", "up": "The majority of the respondents prefer shopping online.", "base": "Most people like shopping online.", "tip": ""},
     {"id": "p.chart.sum", "level": 2, "targetForm": "base", "upgradeId": "p.chart.sum.up", "scene": "chart", "use": "概括", "zh": "总之，学习和运动是两项最主要的周末活动。", "up": "In short, studying and sports are the two most popular weekend activities.", "base": "We can see that most students study or do sports on weekends.", "tip": ""},
+    {"id": "p.chart.multi", "level": 2, "targetForm": "base", "upgradeId": "p.chart.multi.up", "scene": "chart", "use": "多选比例", "zh": "看电视最受欢迎，90.8% 的受访者选了它。", "up": "Watching TV is the most popular choice, selected by 90.8% of the respondents.", "base": "90.8% of the people chose watching TV.", "tip": "各项加起来超过 100% 是多选：写 X% of the respondents …，不写 account for 或 the total"},
+    {"id": "p.chart.morethan", "level": 2, "targetForm": "base", "upgradeId": "p.chart.morethan.up", "scene": "chart", "use": "说明多选", "zh": "受访者可以选不止一项，所以各项加起来超过 100%。", "up": "Since the respondents could choose more than one option, the percentages add up to more than 100%.", "base": "People could choose more than one answer, so the total is more than 100%.", "tip": "多选图写这一句，说明你读懂了图"},
+    {"id": "p.chart.equal", "level": 2, "targetForm": "base", "upgradeId": "p.chart.equal.up", "scene": "chart", "use": "两项接近", "zh": "前两项几乎一样高，分别是 54.6% 和 54.5%。", "up": "The first two items are almost equal, at 54.6% and 54.5% respectively.", "base": "The first two numbers are almost the same (54.6% and 54.5%).", "tip": "只差一点点时用 almost equal / almost the same，不说谁高很多"},
     {"id": "p.trend.rise", "level": 2, "targetForm": "base", "upgradeId": "p.trend.rise.up", "scene": "trend", "use": "上升", "zh": "电动汽车的数量从 2015 年的 2 万辆急剧上升到 2025 年的 45 万辆。", "up": "The number of electric cars increased sharply from 20,000 in 2015 to 450,000 in 2025.", "base": "The number of electric cars went up a lot from 20,000 to 450,000.", "tip": "the number of + 复数名词，谓语用单数；过去的数据用过去时"},
     {"id": "p.trend.there", "level": 2, "targetForm": "base", "upgradeId": "p.trend.there.up", "scene": "trend", "use": "名词写法", "zh": "网购人数大幅增长。", "up": "There was a sharp increase in the number of online shoppers.", "base": "The number of online shoppers went up a lot.", "tip": ""},
     {"id": "p.trend.peak", "level": 2, "targetForm": "base", "upgradeId": "p.trend.peak.up", "scene": "trend", "use": "峰值和转折", "zh": "它在 2020 年达到 80% 的峰值，随后略有下降。", "up": "It reached a peak of 80% in 2020 and then dropped slightly.", "base": "It was the highest in 2020 (80%), and then it went down a little.", "tip": ""},
@@ -283,9 +286,10 @@
     {"id": "p.conclude.both", "level": 2, "targetForm": "base", "upgradeId": "p.conclude.both.up", "scene": "conclude", "use": "多方努力", "zh": "政府和个人都应该努力解决这个问题。", "up": "Both the government and individuals should make efforts to solve this problem.", "base": "Everyone should work together to solve this problem.", "tip": ""}
   ],
   "templates": [
-    {"id": "t.letter", "level": 1, "part": "小", "scene": "invite", "name": "书信通用模板", "when": "邀请、介绍、建议、感谢……大部分小作文都能套。花括号里的内容按题目写，用对应场景的句型。", "paras": ["Dear {称呼：Jack / Professor Smith / Sir or Madam},", "I am writing to {写信目的：invite you to … / give you some advice on …}. {任务1：两三句，写清时间、地点、内容或建议}.", "Besides, {任务2：两三句}. I hope {一句愿望：you can join us / my advice will be helpful to you}.", "Please let me know if you have any questions. I am looking forward to your reply.", "{结束语：Best wishes, / Yours sincerely,}", "Li Ming"]},
+    {"id": "t.letter", "level": 1, "part": "小", "scene": "invite", "name": "书信通用模板", "when": "邀请、介绍、建议、感谢……大部分小作文都能套。花括号里的内容按题目写，用对应场景的句型。落款写题目指定的名字（近年都是 Li Ming）。", "paras": ["Dear {称呼：Jack / Professor Smith / Sir or Madam},", "I am writing to {写信目的：invite you to … / give you some advice on …}. {任务1：两三句，写清时间、地点、内容或建议}.", "Besides, {任务2：两三句}. I hope {一句愿望：you can join us / my advice will be helpful to you}.", "Please let me know if you have any questions. I am looking forward to your reply.", "{结束语：Best wishes, / Yours sincerely,}", "Li Ming"]},
     {"id": "t.notice", "level": 2, "part": "小", "scene": "request", "name": "通知模板", "when": "题目要求写 notice（通知）时用：标题居中，正文不写 Dear，右下角写发布者。", "paras": [{"t": "NOTICE", "a": "c"}, "In order to {目的：enrich students' campus life}, {组织者：the Students' Union} will hold {活动名称：a summer camp} {时间：from July 10th to 20th} {地点：on our campus}.", "{活动内容：两三句，There will be … / Participants can …}.", "Anyone who is interested is welcome to take part. Please sign up {报名方式和截止时间：by emailing … before …}.", {"t": "{发布者：The Students' Union}", "a": "r"}]},
-    {"id": "t.static", "level": 1, "part": "大", "scene": "chart", "name": "静态图模板（饼图 / 柱状图）", "when": "图里只有一个时间点：写占比、排第几、差距。", "paras": ["The {图表类型：pie chart / bar chart} shows {图表主题：how college students spend their weekends}. {最大项} ranks first, accounting for {数字}%, followed by {第二项} at {数字}%. {第三项} makes up {数字}%, while only {数字}% {最小项}. In short, {一句概括}.", "Several factors may account for this phenomenon. First, {原因一}. Second, {原因二}. Besides, {原因三，可省}.", "In my opinion, {表态：it is good that …}. Therefore, {建议：we should … / schools should …}. I believe that {预测} in the future."]},
+    {"id": "t.survey", "level": 1, "part": "大", "scene": "chart", "name": "调查图模板（多选 / 各项独立）", "when": "调查类图表，各项加起来超过 100%（可以多选）或每项各自独立时用。2024–2026 年连续三年考这一类。不写「合计」，也不写 accounts for … of the total。", "paras": ["The {图表类型：bar chart} shows the results of a survey on {调查主题：how the elderly spend their free time}. {最大项：Watching TV} is the most popular choice, selected by {数字}% of the respondents, followed by {第二项：walking} ({数字}%). By contrast, only {数字}% of them {最小项：play chess}. Since the respondents could choose more than one option, the percentages add up to more than 100%.", "Several factors may account for this phenomenon. First, {原因一}. Second, {原因二}. Besides, {原因三，可省}.", "In my opinion, {表态：it is good that …}. Therefore, {建议：we should … / schools should …}. I believe that {预测} in the future."]},
+    {"id": "t.static", "level": 1, "part": "大", "scene": "chart", "name": "静态图模板（饼图 · 合计 100%）", "when": "图里只有一个时间点、各项合计 100%（比如饼图）：写占比、排第几、差距。各项加起来超过 100%（多选调查）时，用「调查图模板」。", "paras": ["The {图表类型：pie chart / bar chart} shows {图表主题：how college students spend their weekends}. {最大项} ranks first, accounting for {数字}%, followed by {第二项} at {数字}%. {第三项} makes up {数字}%, while only {数字}% {最小项}. In short, {一句概括}.", "Several factors may account for this phenomenon. First, {原因一}. Second, {原因二}. Besides, {原因三，可省}.", "In my opinion, {表态：it is good that …}. Therefore, {建议：we should … / schools should …}. I believe that {预测} in the future."]},
     {"id": "t.dynamic", "level": 1, "part": "大", "scene": "trend", "name": "动态图模板（折线图 / 多年份）", "when": "图里有多个年份：写变化方向、起点终点、对比。", "paras": ["The {图表类型：line chart / bar chart} shows the changes in {对象} from {起始年} to {结束年}. The number of {对象A} increased {sharply / steadily} from {起点数据} in {年份} to {终点数据} in {年份}. In contrast, {对象B} {dropped / remained stable} during the same period. Obviously, {一句概括趋势}.", "Several reasons may explain this trend. First, with the development of {科技 / 经济 / 互联网}, {原因一}. Second, {原因二}. In addition, {原因三，可省}.", "In conclusion, this trend is {beneficial / harmful} to {对象：our society / the environment}. I believe that {预测} in the future, and {谁：the government / we} should {建议}."]}
   ],
   "essays": [
