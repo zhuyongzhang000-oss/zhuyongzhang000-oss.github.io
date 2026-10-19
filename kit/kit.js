@@ -239,7 +239,7 @@ const K = (() => {
     const list = (hub && hub.科目) || Object.values(subjects).filter(s => !s.hidden).map(s => ({ id: s.id, 名称: s.name, 可用: true }));
     openSheet(`<h3>切换</h3><div class="menu">
       ${list.map(s => { const d = subjects[s.id]; return `<button class="mrow${cur.sid === s.id ? " cur" : ""}" data-act="k:go" data-to="#/${s.id}" data-b="${esc(d ? d.tone : "")}"><i></i>${esc(s.名称)}<span class="r${cur.sid === s.id ? " on" : ""}">${cur.sid === s.id ? "在这里" : s.可用 ? "" : esc(s.说明 || "还不能用")}</span></button>`; }).join("")}
-      ${STATIC ? `<a class="mrow" href="c/index.html"><i class="plain"></i>C 语言讲义<span class="r">13 环</span></a>`
+      ${STATIC ? `<a class="mrow" href="zuowen/"><i class="plain"></i>英语作文 · 背诵<span class="r">单词 句型 模板</span></a><a class="mrow" href="c/index.html"><i class="plain"></i>C 语言讲义<span class="r">13 环</span></a>`
         : `<button class="mrow" data-act="k:go" data-to="#/settings"><i class="plain"></i>设置${hub && hub.更新 && hub.更新.落后 ? `<span class="r on">有更新</span>` : ""}</button>`}
       <button class="mrow" data-act="k:full"><i class="plain"></i>${fsOn() ? "退出全屏" : "全屏"}<span class="r">也可以双击顶栏空白处</span></button>
       <a class="mrow" href="https://www.notion.so/3e56c5d1aa48813a9834c3ebe886419c" target="_blank" rel="noopener"><i class="plain"></i>Notion 总入口<span class="r">新标签页</span></a>
