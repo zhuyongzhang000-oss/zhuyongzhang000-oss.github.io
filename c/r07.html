@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
 <title>环07 矩阵讲义</title>
-<meta name="description" content="C 语言环07：区域条件、原地转置、旋转、矩阵乘法、局部极大值，以及二维数组的定义、初始化、省略行数、按行存储、作函数参数等考点。">
+<meta name="description" content="C 语言环07：区域条件、原地转置、旋转、矩阵乘法、局部极大值、鞍点，以及二维数组的定义、初始化、省略行数、按行存储、作函数参数等考点。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
@@ -675,6 +675,27 @@ int main(void)
 for (i = 0; i &lt; n; i++)
     for (j = 0; j &lt; n; j++) { a[i][j] = num; num += 2; }</code></pre></div>
 <p>3×3 的第三行是 <span class="a" tabindex="0">13 15 17</span>。</p>
+</section>
+<section class="sec" id="s9" data-short="⑨ 鞍点">
+<h3><span class="no">⑨</span><span class="t">鞍点：行里最大、列里最小</span></h3>
+<p>鞍点是在本行最大、在本列最小的元素。分两步：先求出第 i 行的最大值，再拿这一行里等于最大值的每一个，去和它那一列比。</p>
+<div class="code"><pre><code class="c">for (i = 0; i &lt; m; i++) {
+    max = a[i][0];
+    for (j = 1; j &lt; n; j++)
+        if (a[i][j] &gt; max) max = a[i][j];
+    for (j = 0; j &lt; n; j++) {
+        if (a[i][j] != max) continue;      /* 最大值可能不止一个，每个都要验 */
+        ok = 1;
+        for (k = 0; k &lt; m; k++)
+            if (a[k][j] &lt; a[i][j]) { ok = 0; break; }
+        if (ok) printf(…);
+    }
+}</code></pre></div>
+<p>在下面这个矩阵里，鞍点有 <span class="a" tabindex="0">2 个：第 0 行的两个 7</span>：</p>
+<div class="code"><pre class="o">3 7 7 2
+9 8 8 4
+6 7 9 1</pre></div>
+<p>只记下第一个最大值的列号再去验，会找到 <span class="a" tabindex="0">1</span> 个，漏掉 a[0][2]。一个都没找到时要输出「无」，同样要用标志变量（环03 ④）。</p>
 </section>
 <div class="part" id="p2">
 <h2>二维数组的规矩</h2>
