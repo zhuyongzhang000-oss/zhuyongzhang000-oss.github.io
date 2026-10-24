@@ -239,7 +239,7 @@ const K = (() => {
     const list = (hub && hub.科目) || Object.values(subjects).filter(s => !s.hidden).map(s => ({ id: s.id, 名称: s.name, 可用: true }));
     openSheet(`<h3>切换</h3><div class="menu">
       ${list.map(s => { const d = subjects[s.id]; return `<button class="mrow${cur.sid === s.id ? " cur" : ""}" data-act="k:go" data-to="#/${s.id}" data-b="${esc(d ? d.tone : "")}"><i></i>${esc(s.名称)}<span class="r${cur.sid === s.id ? " on" : ""}">${cur.sid === s.id ? "在这里" : s.可用 ? "" : esc(s.说明 || "还不能用")}</span></button>`; }).join("")}
-      ${STATIC ? `<a class="mrow" href="zuowen/"><i class="plain"></i>英语作文 · 背诵<span class="r">单词 句型 模板</span></a><a class="mrow" href="c/index.html"><i class="plain"></i>C 语言讲义<span class="r">13 环</span></a>`
+      ${STATIC ? `<a class="mrow" href="zuowen/"><i class="plain"></i>英语作文 · 背诵<span class="r">单词 句型 模板</span></a><a class="mrow" href="c/index.html"><i class="plain"></i>C 语言讲义<span class="r">13 环 · 拔高</span></a>`
         : `<button class="mrow" data-act="k:go" data-to="#/settings"><i class="plain"></i>设置${hub && hub.更新 && hub.更新.落后 ? `<span class="r on">有更新</span>` : ""}</button>`}
       <button class="mrow" data-act="k:full"><i class="plain"></i>${fsOn() ? "退出全屏" : "全屏"}<span class="r">也可以双击顶栏空白处</span></button>
       ${((hub && hub.链接) || []).map(l => `<a class="mrow" href="${esc(l.地址)}" target="_blank" rel="noopener"><i class="plain"></i>${esc(l.名称)}<span class="r">新标签页</span></a>`).join("")}</div>
@@ -313,42 +313,10 @@ const K = (() => {
   });
   window.addEventListener("hashchange", route);
 
-  /* 电脑上打开时：右下角给出平板这次要用的地址和二维码（电脑的 IP 每次可能不一样，平板相机扫一下就开） */
-  function padCard() {
-    const a = hub && hub.地址;
-    if (STATIC || !["localhost", "127.0.0.1"].includes(location.hostname) || !a || !(a.局域网 || []).length) return;
-    try { if (sessionStorage.getItem("xuexi-padcard") === "off") return; } catch (e) { /* */ }
-    const list = a.局域网;
-    let pick = 0;
-    const box = document.createElement("div");
-    box.className = "padcard";
-    document.body.appendChild(box);
-    const host = u => u.split("//")[1].split(":")[0];
-    const draw = () => {
-      const u = list[pick];
-      let img = "";
-      try { const qr = qrcode(0, "M"); qr.addData(u); qr.make(); img = qr.createImgTag(4, 0, "平板扫码打开"); } catch (e) { /* 画不出就只给地址 */ }
-      box.innerHTML = `<div class="hd">平板扫码打开 <small>电脑这次的地址</small><button class="x" data-pc="off" aria-label="关掉">×</button></div>
-        ${a.公用 ? `<div class="warn">Windows 把现在的网络当成「公用」，平板会被挡住：设置 → 网络和 Internet → WLAN → 点这个网络 → 网络配置文件类型选「专用」。</div>` : ""}
-        <div class="code">${img}</div><code>${esc(u)}</code>
-        ${list.length > 1 ? `<div class="alt">打不开？换一个：${list.map((x, i) => i === pick ? "" : `<button class="link" data-pc="ip" data-i="${i}">${esc(host(x))}</button>`).join(" ")}</div>` : ""}
-        <div class="alt">平板和电脑要连同一个 Wi-Fi 或热点</div>`;
-    };
-    box.addEventListener("click", e => {
-      const b = e.target.closest("[data-pc]");
-      if (!b) return;
-      if (b.dataset.pc === "off") { box.remove(); try { sessionStorage.setItem("xuexi-padcard", "off"); } catch (er) { /* */ } return; }
-      pick = +b.dataset.i;
-      draw();
-    });
-    draw();
-  }
-
   async function start() {
     try { hub = await get("/api/hub"); } catch (e) { hub = null; }
     flush();
     route();
-    padCard();
     if (STATIC && "serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});   // 看过的讲义存下来，没网也能看
   }
   async function refreshHub() { try { hub = await get("/api/hub"); } catch (e) { /* 离线时等恢复 */ } return hub; }

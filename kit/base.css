@@ -253,24 +253,6 @@ pre.code { margin: 0; padding: 12px 14px; border-radius: var(--r-s); background:
 .kv { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 4px 14px; font-size: 15px; margin: 0; }
 .kv dt { color: var(--faint); letter-spacing: .1em; font-size: 14px; }
 .kv dd { margin: 0; overflow-wrap: anywhere; }
-.padcard { position: fixed; right: 16px; bottom: 16px; z-index: 30; background: var(--paper); color: var(--text); border: 1px solid var(--line); border-radius: var(--r);
-  box-shadow: 0 6px 24px rgba(0,0,0,.18); padding: 10px 12px 12px; width: 220px; text-align: center; font-size: 13px; }
-.padcard .hd { display: flex; align-items: baseline; gap: 6px; font-weight: 600; text-align: left; color: var(--text); }
-.padcard .hd small { font-weight: 400; color: var(--faint); }
-.padcard .x { margin-left: auto; border: 0; background: none; color: var(--faint); font-size: 18px; line-height: 1; cursor: pointer; padding: 0 2px; }
-.padcard .code { background: #fff; padding: 8px; border-radius: 10px; line-height: 0; margin: 8px auto 6px; width: max-content; }
-.padcard .code img { width: 168px; height: 168px; image-rendering: pixelated; }
-.padcard code { display: block; font-size: 13px; word-break: break-all; color: var(--text); background: none; }
-.padcard .seg { margin-top: 8px; }
-.padcard .alt { margin-top: 6px; font-size: 12px; color: var(--faint); }
-.padcard .alt .link { font-size: 12px; }
-.padcard .warn { margin-top: 8px; padding: 6px 8px; border-radius: var(--r-s); background: var(--warnbg); color: var(--text); font-size: 12px; line-height: 1.6; text-align: left; }
-.padcard .seg { display: flex; }
-.padcard .seg button { flex: 1; font-size: 12px; white-space: nowrap; padding-left: 6px; padding-right: 6px; }
-@media (max-width: 700px) { .padcard { display: none; } }
-.qr { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
-.qr .code { background: #fff; padding: 8px; border-radius: 10px; line-height: 0; }
-.qr .code img { width: 148px; height: 148px; image-rendering: pixelated; }
 .steps { margin: 10px 0 6px; padding-left: 0; list-style: none; display: grid; gap: 10px; }
 .steps li { line-height: 1.7; }
 .steps code { word-break: break-all; }
