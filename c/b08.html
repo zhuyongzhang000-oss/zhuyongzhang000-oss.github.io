@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
+<title>拔08 程序填空讲义</title>
+<meta name="description" content="C 语言拔高 08：程序填空的做法——先通读再填、循环和读入、条件、数组下标、函数和 static、字符和字符串、文件、指针和链表。配 5 组填空（2012、2013 考研原卷和川师期末卷原题为主），网页和 VS 里都能直接填，运行自动判。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版式：布面唱片封面。七种中明度布色轮换（石板蓝、赭黄、鼠尾草、灰粉、青绿、薰衣草、暖灰），
+   每一环的页头是一块圆角布面，正文是一张安静的纸。字距拉开的人文无衬线，留白多，字像压印在布上。 */
+:root {
+  /* 纸和墨 */
+  --desk: #d9d4ca;  --paper: #f5f2eb;  --tint: #ece7dd;
+  --text: #2e302b;  --sub: #6b6960;  --faint: #8f8b80;  --rule: #ddd6c8;
+  --code-bg: #ebe6dc;
+  --r: 16px;  --r-s: 10px;   /* 圆角 */
+  --pen: #b5482a;           /* 答案：红笔 */
+  --tok-kw: #3d5462;  --tok-str: #a8502c;  --tok-num: #8f6510;  --tok-com: #8f8a7c;  --tok-pre: #7d5a3c;
+  /* Atkinson Hyperlegible：0 带斜线、1 l I 分得开，数字是等高的 */
+  --f-latin: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Segoe UI", sans-serif;
+  --f-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --f-code: "JetBrains Mono", Consolas, "Courier New", monospace;
+  --linen: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px),
+           repeating-linear-gradient(90deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+    --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+    --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --desk: #1b1c19; --paper: #262823; --tint: #2e302a; --text: #e6dfd0; --sub: #aaa497; --faint: #858174; --rule: #3a3c35;
+  --code-bg: #1f201c; --pen: #ec8a66; --dk: 1;
+  --tok-kw: #9fbccc; --tok-str: #e39a63; --tok-num: #e2a129; --tok-com: #858174; --tok-pre: #d3a77c;
+  color-scheme: dark;
+}
+/* 七块布：布色 / 布上标题 / 布上正文 / 纸上强调色（浅、深两种模式） */
+:root, [data-tone="a"] { --cloth: #56707f; --ink: #f4b788; --soft: #f1f1ec; --acc-l: #a5592c; --acc-d: #e8a06c; }
+[data-tone="b"] { --cloth: #cda85a; --ink: #8e361b; --soft: #3a2712; --acc-l: #a34622; --acc-d: #e8895f; }
+[data-tone="c"] { --cloth: #97a68a; --ink: #36294a; --soft: #232a1f; --acc-l: #55703f; --acc-d: #b3c79f; }
+[data-tone="d"] { --cloth: #cfa194; --ink: #5a2632; --soft: #3a1f24; --acc-l: #a24a4f; --acc-d: #ec9aa0; }
+[data-tone="e"] { --cloth: #477774; --ink: #f5d89e; --soft: #f1f3ee; --acc-l: #2c706c; --acc-d: #8cc7c0; }
+[data-tone="f"] { --cloth: #a7a1c0; --ink: #2c2752; --soft: #221f38; --acc-l: #5c5397; --acc-d: #b7afe0; }
+[data-tone="g"] { --cloth: #6e6c63; --ink: #f2c565; --soft: #f5f0e4; --acc-l: #8a610c; --acc-d: #e2a129; }
+:root, [data-tone] { --acc: var(--acc-l); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]), :root:not([data-theme="light"]) [data-tone] { --acc: var(--acc-d); } }
+:root[data-theme="dark"], :root[data-theme="dark"] [data-tone] { --acc: var(--acc-d); }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *::after { transition: none !important; animation: none !important; } }
+body { margin: 0; color: var(--text); font: 17px/1.9 var(--f-body); -webkit-text-size-adjust: 100%; font-variant-numeric: lining-nums;
+  background: var(--desk); background-image: var(--linen); }
+a { color: var(--acc); text-underline-offset: 3px; text-decoration-thickness: 1px; }
+b, strong { font-weight: 700; }
+code, pre { font-family: var(--f-code); font-size: .84em; font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }
+:not(pre) > code { background: var(--tint); padding: .08em .4em; border-radius: 5px; white-space: pre-wrap;
+  display: inline-block; max-width: 100%; line-height: 1.55; vertical-align: baseline; }
+::selection { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+:focus-visible { outline: 1.5px solid var(--acc); outline-offset: 3px; border-radius: 2px; }
+.ic { width: 1em; height: 1em; flex: none; vertical-align: -.12em; stroke: currentColor; fill: none;
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+
+#progress { position: fixed; left: 0; top: env(safe-area-inset-top, 0px); height: 2px; width: 0; z-index: 30;
+  background: var(--acc); transition: width .1s linear; }
+
+/* 布局：左边一列目录，右边一张纸 */
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 28px; padding-block: 40px 110px;
+  display: grid; grid-template-columns: 190px minmax(0, 790px); justify-content: center; gap: 48px; }
+main { min-width: 0; max-width: 790px; background: var(--paper); padding: 0 72px 64px; border-radius: var(--r); overflow: clip;
+  box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 18px 40px -24px rgba(0,0,0,.35); }
+
+/* 目录 */
+.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 28px); align-self: start;
+  max-height: calc(100vh - 56px); overflow-y: auto; padding-block: 4px 24px; font-size: 14px; line-height: 1.55; scrollbar-width: thin; }
+.toc .home { display: inline-flex; align-items: center; gap: 7px; margin-bottom: 22px; color: var(--sub); text-decoration: none;
+  font: 15px/1 var(--f-latin); letter-spacing: .12em; }
+.toc .home:hover { color: var(--acc); }
+.toc p { margin: 22px 0 6px; color: var(--faint); font-size: 12px; letter-spacing: .16em; }
+.toc > p:first-child, .toc .home + p { margin-top: 0; }
+.toc a { display: block; padding: 3px 0 3px 12px; border-left: 1.5px solid transparent; color: var(--sub); text-decoration: none; transition: color .2s, border-color .2s; }
+.toc a:hover { color: var(--text); }
+.toc a.cur { color: var(--acc); border-left-color: var(--acc); }
+.toc-m { display: none; }
+
+/* 页头：一张布面封面 */
+header { margin: 0 -72px; padding: 76px 72px 52px; color: var(--ink);
+  background: var(--cloth); background-image: var(--linen); position: relative; }
+.kicker { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px;
+  font: 500 15px/1.4 var(--f-latin); letter-spacing: .16em; opacity: .9; }
+.kicker a { color: inherit; text-decoration: none; }
+.kicker a:hover { text-decoration: underline; }
+.chip { font: inherit; letter-spacing: .2em; }
+h1 { font-weight: 400; font-size: clamp(30px, 5vw, 42px); line-height: 1.35; margin: 64px 0 22px; letter-spacing: .14em;
+  text-shadow: 0 1px 0 rgba(0,0,0,.25), 0 -1px 0 rgba(255,255,255,.06); text-wrap: balance; }
+.intro p { margin: 0 0 8px; color: var(--soft); font-size: 15.5px; line-height: 1.85; max-width: 38em; opacity: .92; }
+.tools { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; margin-top: 28px; font-size: 14px;
+  color: var(--soft); }
+header :not(pre) > code { background: color-mix(in srgb, var(--soft) 16%, transparent); color: var(--soft); }
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 500 14px/1 var(--f-body); letter-spacing: .08em; color: var(--ink);
+  background: transparent; border: 1px solid color-mix(in srgb, var(--ink) 60%, transparent); border-radius: 999px; padding: 10px 20px; cursor: pointer;
+  transition: background .2s; }
+.btn:hover { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.btn[aria-pressed="true"] { background: var(--ink); color: var(--cloth); }
+.resume { display: none; margin-top: 20px; padding: 12px 0 0; font-size: 14.5px; align-items: center; gap: 12px; flex-wrap: wrap;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 35%, transparent); color: var(--ink); }
+.resume.on { display: flex; }
+.resume a { color: var(--ink); font-weight: 600; }
+.resume button { margin-left: auto; font: inherit; font-size: 13px; color: inherit; background: none; border: 0; cursor: pointer; opacity: .8; }
+
+/* 两大部分 */
+.part { margin-top: 84px; }
+.part .pic { display: none; }
+.part h2 { font-weight: 400; font-size: 25px; line-height: 1.4; margin: 0; letter-spacing: .14em; color: var(--acc); }
+.part h2::before { content: ""; display: block; width: 28px; height: 1.5px; background: var(--acc); margin-bottom: 18px; }
+.part > p { margin: 8px 0 0; color: var(--sub); font-size: 15.5px; }
+
+/* 每一节 */
+.sec { padding-top: 56px; scroll-margin-top: 20px; }
+.part + .sec { padding-top: 26px; }
+.sec h3 { font-weight: 500; font-size: 20px; line-height: 1.5; margin: 0 0 14px; letter-spacing: .04em; text-wrap: balance;
+  display: flex; align-items: baseline; gap: 14px; }
+.sec h3 .no { flex: none; font: 500 16px/1 var(--f-latin); color: var(--acc); letter-spacing: .08em; min-width: 1.4em; }
+.sec h3 .t { flex: 1; min-width: 0; }
+.secbtn { flex: none; display: inline-flex; align-items: center; gap: 6px; font: 13px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; border-bottom: 1px solid transparent; padding: 4px 0; cursor: pointer; transition: color .2s, border-color .2s; white-space: nowrap; }
+.secbtn:hover { color: var(--acc); border-bottom-color: var(--acc); }
+.secbtn[hidden] { display: none; }
+.sec p { margin: 14px 0; }
+.sec ul { margin: 14px 0; padding-left: 1.2em; }
+.sec li { margin: 8px 0; }
+.sec li::marker { color: var(--acc); }
+.mute { color: var(--sub); }
+.small { font-size: 14.5px; }
+mark { background: color-mix(in srgb, var(--ink) 25%, transparent); color: inherit; padding: 0 .15em; }
+
+/* 空：一段虚线，点开后红笔写上 */
+.a { color: var(--pen); font-weight: 600; }
+.hide .a:not(.on) { color: transparent !important; cursor: pointer; user-select: none; border-radius: 4px 4px 0 0;
+  display: inline-block; width: 3.4em; height: 1.3em; overflow: hidden; white-space: nowrap; vertical-align: -0.24em;
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--acc) 70%, transparent); transition: background .2s; }
+.hide .a:not(.on):hover { background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.hide .a:not(.on) * { visibility: hidden; }
+.a.on, .wrap:not(.hide) .a { animation: ink .4s ease-out; }
+.a code { color: inherit; background: transparent; padding: 0; }
+@keyframes ink { from { opacity: 0; } to { opacity: 1; } }
+
+.trap { text-decoration: underline wavy var(--pen); text-decoration-thickness: 1.2px; text-underline-offset: 4px; }
+
+/* 代码 */
+.code { position: relative; margin: 20px 0; background: var(--code-bg); border-radius: var(--r-s); }
+.code .hd { display: flex; align-items: center; gap: 8px; padding: 10px 14px 0 20px; font: 12px/1 var(--f-latin); letter-spacing: .2em; color: var(--faint); }
+.code .hd > .ic, .code .dots { display: none; }
+.code pre { margin: 0; padding: 8px 20px 16px; overflow-x: auto; line-height: 1.75; font-size: 14px; }
+.copy { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; font: 12px/1 var(--f-body); letter-spacing: .06em; color: var(--faint);
+  background: none; border: 0; padding: 2px 0; cursor: pointer; text-transform: none; }
+.copy:hover { color: var(--acc); }
+.t-kw { color: var(--tok-kw); font-weight: 600; }
+.t-str { color: var(--tok-str); }
+.t-num { color: var(--tok-num); }
+.t-com { color: var(--tok-com); font-style: italic; }
+.t-pre { color: var(--tok-pre); }
+pre.o { font-family: var(--f-code); color: var(--sub); }
+
+.hide .oa:not(.on) { cursor: pointer; }
+.hide .oa:not(.on) pre { color: transparent; user-select: none; background-image: var(--linen); }
+.hide .oa:not(.on)::after { content: "先在纸上画出来，再点一下看输出"; position: absolute; left: 20px; top: 42px;
+  font: 14px/1.4 var(--f-body); color: var(--sub); letter-spacing: .04em; }
+.hide .oa:not(.on) .copy { visibility: hidden; }
+
+.pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.pair .code { margin: 0; }
+.pair .lab { font-size: 13px; color: var(--acc); letter-spacing: .1em; margin-bottom: 6px; }
+
+/* 写法 → 结果 */
+.calc { display: grid; grid-template-columns: fit-content(55%) max-content minmax(0, 1fr); gap: 0 18px;
+  margin: 18px 0; align-items: baseline; padding: 4px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+.calc > * { padding: 8px 0; }
+.calc > code:not(.a) { justify-self: start; white-space: pre-wrap; margin: 6px 0; padding: .15em .5em; }
+.calc > :nth-child(3n+1) { min-width: 0; }
+.calc .arrow { color: var(--faint); font-size: 14px; }
+.calc .note { color: var(--sub); font-size: 14.5px; }
+
+.tbl { overflow-x: auto; margin: 18px 0; }
+table { border-collapse: collapse; font-size: 15px; font-variant-numeric: tabular-nums; min-width: 50%; }
+th, td { padding: 8px 22px 8px 0; text-align: left; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 500; color: var(--faint); font-size: 12.5px; letter-spacing: .14em; }
+td code { white-space: nowrap; }
+
+/* 真题、注意 */
+.exam, .fix { margin: 24px 0 0; padding: 14px 20px 12px; border-radius: var(--r-s); background: color-mix(in srgb, var(--acc) 7%, transparent); }
+.exam > p:first-child, .fix .ft { display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 12.5px; letter-spacing: .2em; color: var(--acc); }
+.q { margin: 9px 0; }
+.src { font: 13px/1 var(--f-latin); color: var(--faint); margin-left: 12px; white-space: nowrap; letter-spacing: .06em; }
+.fix { background: color-mix(in srgb, var(--pen) 7%, transparent); font-size: 15.5px; }
+.fix .ft { color: var(--pen); }
+
+.out { font-family: var(--f-code); font-size: .84em; white-space: pre; background: var(--code-bg); padding: .08em .4em; border-radius: 5px; }
+
+/* 回顾：一小块浅色布 */
+.recall { margin: 0 -72px; padding: 30px 72px 26px; scroll-margin-top: 20px; background: var(--tint); }
+.recall h2 { font-weight: 500; font-size: 15px; letter-spacing: .2em; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; color: var(--acc); }
+.recall h2 .secbtn { margin-left: auto; }
+.recall > p { margin: 0 0 10px; color: var(--sub); font-size: 14.5px; }
+.recall .q { margin: 8px 0; }
+.recall :not(pre) > code { background: var(--paper); }
+
+/* 结尾 */
+.end { margin-top: 84px; padding-top: 30px; border-top: 1px solid var(--rule); }
+.end h2 { font-weight: 400; font-size: 22px; letter-spacing: .14em; color: var(--acc); margin: 0 0 8px; }
+.ringnav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; font-size: 15px; }
+.ringnav a, .ringnav span { flex: 1 1 0; min-width: 0; }
+.ringnav a { text-decoration: none; padding: 14px 18px; color: var(--text); border: 1px solid var(--rule); border-radius: var(--r-s); transition: border-color .2s, background .2s; }
+.ringnav a:hover { background: color-mix(in srgb, var(--acc) 6%, transparent); }
+.ringnav a:hover { border-color: var(--acc); }
+.ringnav a small { display: block; font: 12.5px/1.4 var(--f-latin); letter-spacing: .16em; color: var(--faint); }
+.ringnav a:nth-child(2) { text-align: center; }
+.ringnav a:last-child { text-align: right; }
+.keys { margin-top: 20px; font-size: 13px; color: var(--faint); letter-spacing: .04em; }
+.keys kbd { font: 12px/1 var(--f-code); border: 1px solid var(--rule); border-radius: 5px; padding: 2px 6px; color: var(--sub); }
+details.legend { margin-top: 26px; font-size: 14px; color: var(--sub); }
+details.legend summary { cursor: pointer; }
+details.legend dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 18px; margin: 10px 0 0; }
+details.legend dt { font: 13px/1.8 var(--f-latin); letter-spacing: .06em; }
+details.legend dd { margin: 0; }
+
+/* 目录页：13 张小卡，每张左边一块圆角布面色签 */
+.rings { list-style: none; margin: 22px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.rings li { position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); column-gap: 14px; align-items: center;
+  padding: 10px 14px 10px 10px; border-radius: var(--r); background: var(--paper); border: 1px solid var(--rule);
+  transition: transform .2s, box-shadow .2s, border-color .2s; }
+.rings li:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--cloth) 70%, transparent);
+  box-shadow: 0 10px 22px -16px rgba(0,0,0,.5); }
+.rings .rn { grid-row: 1 / span 3; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center;
+  background: var(--cloth); background-image: var(--linen); color: var(--ink); font: 500 17px/1 var(--f-latin); letter-spacing: .08em; }
+.rings a { font-weight: 500; font-size: 16px; line-height: 1.45; letter-spacing: .06em; color: var(--text); text-decoration: none; }
+.rings a::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.rings p { margin: 2px 0 0; font-size: 13px; line-height: 1.55; color: var(--sub); display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.rings li.last { border-color: var(--acc); background: color-mix(in srgb, var(--acc) 6%, var(--paper)); }
+.rings li.last a::before { content: "上次 · "; color: var(--acc); font-size: 13px; letter-spacing: .1em; }
+.rings li.last p:last-child { color: var(--acc) !important; }
+
+/* 浮动按钮 */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(env(safe-area-inset-bottom, 0px) + 18px);
+  display: flex; flex-direction: column; gap: 8px; z-index: 20; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.fab.on { opacity: 1; pointer-events: auto; }
+.fab button { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--cloth); background-image: var(--linen); color: var(--ink);
+  box-shadow: 0 8px 18px -10px rgba(0,0,0,.6); cursor: pointer; display: grid; place-items: center; }
+.fab .m { display: none; }
+
+.drawer { position: fixed; inset: 0; z-index: 40; display: none; }
+.drawer.on { display: block; }
+.drawer .shade { position: absolute; inset: 0; background: rgba(20, 20, 18, .45); }
+.drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(80vw, 310px); background: var(--paper); border-radius: var(--r) 0 0 var(--r);
+  padding: calc(env(safe-area-inset-top, 0px) + 28px) 24px 28px; overflow-y: auto; }
+.drawer .toc { display: block; position: static; max-height: none; padding: 0; font-size: 15px; }
+
+/* 窄于 1100（分屏、平板）：目录收进抽屉，纸张居中 */
+@media (max-width: 1100px) {
+  .wrap { grid-template-columns: minmax(0, 790px); gap: 0; padding-inline: 24px; }
+  .wrap > .toc { display: none; }
+  .toc-m { display: block; margin-top: 22px; font-size: 15px; color: var(--ink); }
+  .toc-m summary { cursor: pointer; letter-spacing: .1em; }
+  .toc-m .toc { display: block; position: static; max-height: none; padding: 10px 0 0; columns: 2; column-gap: 24px; }
+  .toc-m .toc a { color: inherit; opacity: .85; border-left: 0; padding-left: 0; }
+  .toc-m .toc p { break-after: avoid; color: inherit; opacity: .6; }
+  .fab .m { display: grid; }
+  .keys { display: none; }
+}
+/* 手机：纸张铺满 */
+@media (max-width: 760px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); padding-inline: 0; padding-block: 0 80px; }
+  main { padding: 0 20px 48px; box-shadow: none; border-radius: 0; }
+  header { margin: 0 -20px; padding: 48px 20px 36px; border-radius: 0 0 22px 22px; }
+  h1 { margin-top: 40px; }
+  .recall { margin: 0 -20px; padding: 24px 20px 20px; }
+}
+@media (max-width: 560px) {
+  body { font-size: 16px; line-height: 1.9; }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .calc { grid-template-columns: minmax(0, 1fr); }
+  .calc > * { padding: 3px 0; }
+  .calc .arrow { display: none; }
+  .calc > :nth-child(3n) { padding-left: 1em; padding-bottom: 10px; }
+  .src { display: block; margin: 4px 0 0; }
+  .sec h3 { flex-wrap: wrap; }
+  .secbtn { margin-left: auto; }
+  .rings { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  pre.fig { font-size: 13px; }
+  .stem { padding: 12px 14px; }
+  .ringnav a:nth-child(2) { order: 3; flex-basis: 100%; }
+}
+
+/* 5 道真题 */
+.prob { padding-top: 48px; }
+.prob h3 .no { font-weight: 700; }
+.pmeta { margin: -6px 0 12px !important; font-size: 13.5px; color: var(--faint); letter-spacing: .04em; }
+.ptag { display: inline-block; padding: 1px 9px; margin-right: 4px; border-radius: 999px; font-size: 12.5px;
+  color: var(--acc); background: color-mix(in srgb, var(--acc) 10%, transparent); }
+.stem { padding: 14px 18px; border-radius: var(--r-s); background: var(--tint); }
+.stem p, .req p { margin: 6px 0 !important; }
+pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space: pre; overflow-x: auto; background: none; }
+.req { margin-top: 14px; }
+.req .lab, .io .lab { margin: 0 0 2px !important; font-size: 12.5px; letter-spacing: .16em; color: var(--faint); }
+.hints { list-style: none; padding: 0 !important; margin: 12px 0 0 !important; font-size: 15.5px; }
+.hints li { margin: 4px 0 !important; }
+.hints b { font-weight: 600; color: var(--acc); margin-right: .6em; }
+.hints b::after { content: "："; display: none; }
+.refs { margin: 10px 0 0 !important; font-size: 14px; color: var(--faint); }
+.refs a { margin-right: 6px; text-decoration: none; padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.prog { margin-top: 16px; }
+.prog-btn { display: inline-flex; align-items: center; gap: 7px; border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent); background: transparent;
+  color: var(--acc); border-radius: 999px; padding: 6px 16px; font: 500 14px/1.2 var(--f-body); letter-spacing: .06em; cursor: pointer; }
+.prog-btn:hover { background: color-mix(in srgb, var(--acc) 8%, transparent); }
+.hide .prog:not(.on) .prog-body { display: none; }
+.wrap:not(.hide) .prog-btn { display: none; }
+.prog-body { margin-top: 12px; }
+.prog-body .code { margin: 10px 0; }
+.tip { margin: 0 !important; padding: 10px 16px; border-radius: var(--r-s); font-size: 15px; background: color-mix(in srgb, var(--pen) 7%, transparent); }
+.tip b { color: var(--pen); font-weight: 600; margin-right: .7em; }
+.io { margin: 10px 0 0; }
+.io pre { margin: 0; padding: 10px 16px; border-radius: var(--r-s); background: var(--code-bg); font: 14px/1.65 var(--f-code); overflow-x: auto; color: var(--sub); }
+</style>
+
+<div id="progress" aria-hidden="true"></div>
+<div class="wrap hide" id="root" data-ring="B08" data-name="拔高 · 程序填空" data-home="index.html#ba" data-tone="a">
+  <nav class="toc" id="toc" aria-label="目录"></nav>
+  <main>
+    <header>
+      <p class="kicker"><a href="index.html#ba">C 语言讲义</a><span class="chip">拔高 08</span></p>
+      <h1>程序填空：读懂别人的骨架，补上关键的一句</h1>
+      <div class="intro">
+        <p>2012 年单考 C 的原卷有 20 分程序填空，2013 年 15 分，本科期末卷每卷 24–36 分。程序填空不考你会不会写，考你能不能<b>看懂别人写了一半的程序</b>：循环条件、读下一个数、return、static、'\0'、fopen 的方式。编程题都会写的人，填空照样会丢分——因为没有通读就下笔。</p>
+      </div>
+      <div class="tools">
+        <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
+      </div>
+      <div class="resume" id="resume"></div>
+      <details class="toc-m"><summary>目录</summary><nav class="toc" id="toc-m" aria-label="目录"></nav></details>
+    </header>
+<div class="part" id="zt">
+<h2>5 道题</h2>
+<p>先自己写，写完再打开完整程序对照。每个程序都编译运行过，下面的运行结果就是它的真实输出。标「选做」的那道可以先跳过。</p>
+</div>
+<section class="sec prob" id="t1" data-short="题1 2012 原卷">
+<h3><span class="no">题1</span><span class="t">2012 原卷</span></h3>
+<p class="pmeta"><span class="ptag">必做</span> · 2012 原卷 五、程序填空（4 小题 10 空，每空 2 分，共 20 分）</p>
+<div class="stem"><p>请根据每小题前的说明及要求，参照程序中的相应注释，在划线部分填上适当的 C 语言的表达式或语句，完成程序。</p>
+<p>(1) 从键盘上输入若干个学生的成绩，统计并输出最高成绩和最低成绩，当输入负数时结束输入。</p>
+<p>(2) 以下函数的功能是：求 x 的 y 次方，并返回结果。</p>
+<p>(3) 打印「水仙花数」：一个 3 位数，各位数字的立方和等于它本身，如 153 = 1³ + 5³ + 3³。每行打印一个。</p>
+<p>(4) 从键盘任意输入一个年号，判断它是否是闰年：能被 4 整除但不能被 100 整除，或者能被 400 整除。</p></div>
+<div class="req"><p class="lab">要求</p><p>把 10 个 ____ 换成你填的内容（编号写在空前面的注释里），别的地方不用动。</p>
+<p>(3) 输出的格式：每行一个数，<code>printf("%d\n", …)</code>。</p></div>
+<ul class="hints"><li><b>依据</b>2012 年 832 C 语言程序设计原卷（单考 C、150 分，和 2027 的情况一样）第五大题原题。</li><li><b>思路</b>先通读整段程序和注释，弄清每个变量是干什么的，再填空；填完在纸上用一组数走一遍。(1) 循环里每次都要读下一个成绩，不然 x 永远不变；(3) 三重循环里 i、j、k 分别是百位、十位、个位。</li></ul>
+<p class="refs">对应讲义　<a href="#s1">①</a> <a href="#s2">②</a> <a href="#s3">③</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>② 循环里要再读一次，不然死循环；⑤⑥ 把三位数拆成 i、j、k 再拼回去；⑧ scanf 要地址；⑨ 闰年两种情况用 || 连起来。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void score_range(void)
+{
+    float x, amax, amin;
+    scanf("%f", &amp;x);
+    amax = x;
+    amin = x;
+    while (x &gt;= 0) {
+        if (x &gt; amax)
+            amax = x;
+        if (/*①*/ x &lt; amin)
+            amin = x;
+        /*②*/ scanf("%f", &amp;x);
+    }
+    printf("\namax=%f\namin=%f\n", amax, amin);
+}
+
+double fun(double x, int y)
+{
+    int i;
+    double z;
+    for (i = 1, z = x; i &lt; y; i++)
+        z = z * /*③*/ x;
+    return /*④*/ z;
+}
+
+void narcissus(void)
+{
+    int i, j, k;
+    for (i = 1; i &lt;= 9; i++)
+        for (j = 0; j &lt;= 9; j++)
+            for (k = 0; k &lt;= 9; k++)
+                if (i * i * i + /*⑤*/ j * j * j + k * k * k == /*⑥*/ i * 100 + j * 10 + k)
+                    { /*⑦*/ printf("%d\n", i * 100 + j * 10 + k); }
+}
+
+void leap_year(void)
+{
+    int year, flag;
+    printf("Enter year:");
+    scanf("%d", /*⑧*/ &amp;year);
+    if (/*⑨*/ (year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0)
+        flag = 1;
+    else
+        flag = 0;
+    if (/*⑩*/ flag == 1)
+        printf("它是闰年\n");
+    else
+        printf("它不是闰年\n");
+}
+
+int main(void)
+{
+    score_range();                          /* (1) 输入 85 92.5 60 77 -1 */
+    printf("2 的 10 次方：%.0f\n", fun(2, 10));
+    narcissus();
+    leap_year();                            /* (4) 输入 2024 */
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>85 92.5 60 77 -1
+2024</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>
+amax=92.500000
+amin=60.000000
+2 的 10 次方：1024
+153
+370
+371
+407
+Enter year:它是闰年</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t2" data-short="题2 2013 原卷">
+<h3><span class="no">题2</span><span class="t">2013 原卷</span></h3>
+<p class="pmeta"><span class="ptag">必做</span> · 2013 原卷 三、程序填空（2 小题 5 空，每空 3 分，共 15 分）</p>
+<div class="stem"><p>(1) 根据对 n 的输入，求 1 + 2 + 3 + … + n 的和。</p>
+<p>(2) 使用二维数组形成一个五行的杨辉三角形并输出：</p>
+<pre class="fig">       1
+       1   1
+       1   2   1
+       1   3   3   1
+       1   4   6   4   1</pre></div>
+<div class="req"><p class="lab">要求</p><p>把 5 个 ____ 换成你填的内容。(2) 每个数用 %4d 输出，每行最后换行。</p></div>
+<ul class="hints"><li><b>依据</b>2013 年 832 C 语言程序设计与数据结构原卷第三大题原题。</li><li><b>注意</b>(1) 的 main 改名叫 sum_main，(2) 的 main 改名叫 yanghui。原卷 (2) 的第一个 for 印成了 for (m = 0; n &lt; N; m++)，是印刷错误（n 还没赋值），这里改成 m &lt; N。考场上碰到这种错，在答卷上写一句「此处应为 m &lt; N」。</li><li><b>思路</b>(1) 函数算好的结果怎么交回给 main？main 里 scanf 要的是什么？(2) 每行的第一个和最后一个是几；中间的数等于上一行的哪两个数相加；一行打完要做什么。</li></ul>
+<p class="refs">对应讲义　<a href="#s2">②</a> <a href="#s4">④</a> <a href="#s5">⑤</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>① 函数要 return，不然 main 拿到的是随机值；② scanf 要 &amp;n；④ 中间的数是「左上 + 正上」。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+float sum(int x)
+{
+    int i;
+    float s;
+    s = 0;
+    for (i = 1; i &lt;= x; i++)
+        s += i;
+    /*①*/ return s;
+}
+
+void sum_main(void)
+{
+    int n;
+    scanf("%d", /*②*/ &amp;n);
+    printf("%f\n", sum(n));
+}
+
+#define N 5
+void yanghui(void)
+{
+    int m, n, a[N][N];
+    for (m = 0; m &lt; N; m++) {
+        a[m][0] = a[m][m] = /*③*/ 1;
+        for (n = 1; n &lt; m; n++)
+            a[m][n] = a[m - 1][n - 1] + /*④*/ a[m - 1][n];
+    }
+    for (m = 0; m &lt; N; m++) {
+        for (n = 0; n &lt;= m; n++) printf("%4d", a[m][n]);
+        /*⑤*/ printf("\n");
+    }
+}
+
+int main(void)
+{
+    sum_main();                             /* (1) 输入 100 */
+    yanghui();
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>100</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>5050.000000
+   1
+   1   1
+   1   2   1
+   1   3   3   1
+   1   4   6   4   1</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 2018 期末卷">
+<h3><span class="no">题3</span><span class="t">2018 期末卷</span></h3>
+<p class="pmeta"><span class="ptag">必做</span> · 川师本科期末卷 2018-19 三、程序填空（4 小题 8 空，每空 3 分，共 24 分）</p>
+<div class="stem"><p>(1) 根据以下函数关系，对输入的每个 x 值，计算出相应的 y 值：</p>
+<pre class="fig">        x(x+2)   (2 &lt; x &lt;= 10)
+    y = 2x       (-1 &lt; x &lt;= 2)
+        x-1      (x &lt;= -1)</pre>
+<p>其他情况输出 error。</p>
+<p>(2) 下列程序运行的结果为 k=5 和 k=12（各占一行），填空完成程序。</p>
+<p>(3) 若 x、y 是整型变量，执行下列语句后 x 的值是 10，y 的值是 6，填写空白。</p>
+<p>(4) 把从键盘输入的字符存到文件里，用 # 作为结束符（# 不存）。</p></div>
+<div class="req"><p class="lab">要求</p><p>把 ____ 换成你填的内容（③ 是在 int 前面补一个词）。</p></div>
+<ul class="hints"><li><b>依据</b>期末卷的程序填空每卷 24–36 分，考研原卷的填空就是这个难度；这一卷的四小题正好是分段函数、static、break 和 continue、文件四种。</li><li><b>注意</b>原卷 (1)(2)(4) 是 main，这里改了名字；(3) 原卷只有一段语句，这里包成函数并在最后打印 x、y。空在注释里，填好以后把它写在 int 前面。(4) 原卷用 gets 读文件名，gets 在新的 C 标准里已经删掉了，这里改成 <code>scanf("%s", …)</code> 再用 <code>getchar()</code> 吃掉回车；原卷打不开文件时 <code>exit(0)</code>，这里改成 return。</li><li><b>思路</b>(1) 已经写出来的两个分支是哪两段，剩下的那段条件是什么；最后的 else 让后面输出 error。(2) 第一次 k=5、第二次 k=12：c 两次分别是几，说明 c 保留了上次的值；再反推两次传进去的数。(3) 在纸上画追踪表：什么时候停、奇数分支走完以后要不要执行 x -= 3。(4) fopen 的第一个参数是文件名；循环条件里一边读一边判断是不是 #。</li></ul>
+<p class="refs">对应讲义　<a href="#s2">②</a> <a href="#s3">③</a> <a href="#s5">⑤</a> <a href="#s7">⑦</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>② 让 y 等于 -1 才会输出 error；③ static 让 c 保留上次的值；④ 原卷没给答案，两次分别传 2 和 8 的都对；⑥ continue 跳过 x -= 3；⑧ 赋值要加括号再和 '#' 比。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+void piecewise(void)
+{
+    int x, y;
+    scanf("%d", &amp;x);
+    if (x &gt; 2 &amp;&amp; x &lt;= 10) y = x * (x + 2);
+    else if (/*①*/ x &gt; -1 &amp;&amp; x &lt;= 2) y = 2 * x;
+    else if (x &lt;= -1) y = x - 1;
+    else /*②*/ y = -1;
+    if (y != -1) printf("%d", y);
+    else printf("error");
+}
+
+int f(int a)
+{
+    int b = 0;
+    /*③*/ static int c = 3;
+    b = a + c++;
+    return b;
+}
+
+void static_main(void)
+{
+    int a = 2, i, k = 0;
+    for (i = 1; i &lt;= 2; i++) {
+        k = f(/*④*/ a * i * i);
+        printf("k=%d\n", k);
+    }
+}
+
+void loop_xy(void)
+{
+    int x, y;
+    for (y = 1, x = 1; y &lt; 50; y++) {
+        if (/*⑤*/ x &gt;= 10) break;
+        if (x % 2 == 1) {
+            x += 5;
+            /*⑥*/ continue;
+        }
+        x -= 3;
+    }
+    printf("x=%d,y=%d", x, y);
+}
+
+void save_until_hash(void)
+{
+    FILE *fp;
+    char ch, fname[20];
+    printf("input the filename:\n");
+    scanf("%s", fname);
+    getchar();
+    if ((fp = fopen(/*⑦*/ fname, "w")) == NULL) {
+        printf("cannot open file\n");
+        return;
+    }
+    while (/*⑧*/ (ch = getchar()) != '#')
+        fputc(ch, fp);
+    fclose(fp);
+}
+
+int main(void)
+{
+    piecewise();                            /* (1) 输入 5 */
+    printf("\n");
+    static_main();
+    loop_xy();
+    printf("\n");
+    save_until_hash();                      /* (4) 文件名 b08.txt，内容到 # 为止 */
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>5
+b08.txt
+I love C!#这里不存</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>35
+k=5
+k=12
+x=10,y=6
+input the filename:</pre></div>
+<div class="io"><p class="lab">运行后文件 b08.txt 的内容</p><pre>I love C!</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 2019 期末卷">
+<h3><span class="no">题4</span><span class="t">2019 期末卷</span></h3>
+<p class="pmeta"><span class="ptag">必做</span> · 川师本科期末卷 2019-20 三、程序填空（3 小题 8 空，每空 3 分，共 24 分）</p>
+<div class="stem"><p>(1) 以下程序段针对输入的当前日期（年 yend、月 mend、日 dend）和出生日期（yman、mman、dman）计算出实际年龄。</p>
+<p>(2) 对输入的一个小写字母，将字母循环后移 5 个位置后输出。如 'a' 变成 'f'，'w' 变成 'b'。</p>
+<p>(3) 有一个数据文件 data1.dat，存储数据的形式为 1,2,3 / 4,5,6 / … / 28,29,30（10 行，每行 3 个数用逗号隔开）。</p>
+<p>要将该数据文件的数据取出，存放在一个数组中，并显示在屏幕上。</p></div>
+<div class="req"><p class="lab">要求</p><p>把 ____ 换成你填的内容。</p></div>
+<ul class="hints"><li><b>依据</b>期末卷原题。年龄（多级条件）、字母循环后移（字符运算）、从文件读数据（fopen、fscanf）。</li><li><b>注意</b>(1) 原卷只有一段语句，这里包成函数，返回年龄。原卷 ①②③ 空的是比较运算符（mend ① mman、mend ② mman &amp;&amp; dend ③ dman），运算符没法单独留空，这里把整个条件留空：① 一空，②③ 合成一空。(2)(3) 原卷是 main，这里改了名字。(3) 原卷「软盘上」的文件；原卷还有一空 ⑥ 在注释里（输入的文件名是什么，</li><li><b>思路</b>(1) 先按年份相减；今年的生日还没到，就要减 1。「还没到」分两种：月份小；月份相同而日子小。(2) 'a'–'u' 后移 5 还在字母表里；'v'–'z' 后移 5 要绕回开头：'v' 变 'a'，差多少？(3) 读文本文件用什么打开方式；按格式从文件读用哪个函数（和 scanf 一样，只是多一个 fp）。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a> <a href="#s6">⑥</a> <a href="#s7">⑦</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>② 月份相同还要比日子；⑤ 'v' + 5 超过 'z'，减 21 绕回去（也可以写 c = (c - 'a' + 5) % 26 + 'a'）；⑦ 读用 "r"。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int age_of(int yend, int mend, int dend, int yman, int mman, int dman)
+{
+    int age;
+    age = yend - yman;
+    if (/*①*/ mend &lt; mman)
+        age--;
+    else if (/*②③*/ mend == mman &amp;&amp; dend &lt; dman)
+        age--;
+    return age;
+}
+
+void shift5(void)
+{
+    char c;
+    c = getchar();
+    if (c &gt;= 'a' &amp;&amp; c &lt;= 'u') /*④*/ c = c + 5;
+    else if (c &gt;= 'v' &amp;&amp; c &lt;= 'z') /*⑤*/ c = c - 21;
+    putchar(c);
+}
+
+void read_data(void)
+{
+    int i, a[10][3];
+    char fname[10];
+    FILE *fp;
+    printf("input data filename:  ");
+    scanf("%s", fname);
+    fp = fopen(fname, /*⑦*/ "r");
+    for (i = 0; i &lt; 10; i++)
+        /*⑧*/ fscanf(fp, "%d,%d,%d", &amp;a[i][0], &amp;a[i][1], &amp;a[i][2]);
+    fclose(fp);
+    printf("output data is:\n");
+    for (i = 0; i &lt; 10; i++)
+        printf("%5d,%5d,%5d\n", a[i][0], a[i][1], a[i][2]);
+}
+
+int main(void)
+{
+    printf("年龄：%d\n", age_of(2026, 10, 24, 2000, 12, 1));
+    shift5();                               /* (2) 输入 w */
+    printf("\n");
+    read_data();                            /* (3) 输入文件名 data1.dat */
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>w
+data1.dat</pre></div>
+<div class="io"><p class="lab">文件 data1.dat 原有内容</p><pre>1,2,3
+4,5,6
+7,8,9
+10,11,12
+13,14,15
+16,17,18
+19,20,21
+22,23,24
+25,26,27
+28,29,30</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>年龄：25
+b
+input data filename:  output data is:
+    1,    2,    3
+    4,    5,    6
+    7,    8,    9
+   10,   11,   12
+   13,   14,   15
+   16,   17,   18
+   19,   20,   21
+   22,   23,   24
+   25,   26,   27
+   28,   29,   30</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t5" data-short="题5 指针字符串链表">
+<h3><span class="no">题5</span><span class="t">指针字符串链表</span></h3>
+<p class="pmeta"><span class="ptag">选做</span> · 期末卷 2012-13 的填空题意 + 自编</p>
+<div class="stem"><p>(1) 手写 strcmp：两个串一样返回 0，否则返回第一处不同的两个字符之差。</p>
+<p>(2) 用 getchar 读一行（到回车为止）放进 s，再用指针把 s 输出，前后加方括号。</p>
+<p>(3) 把 3×3 矩阵原地转置（不用第二个数组）。</p>
+<p>(4) 求链表里所有结点 value 的和。</p></div>
+<div class="req"><p class="lab">要求</p><p>把 8 个 ____ 换成你填的内容。</p></div>
+<ul class="hints"><li><b>依据</b>川师 2012-13 期末卷程序填空考过「手写字符串比较」「getchar 读一行再用指针输出」「3×3 矩阵原地转置」（只看到题意，没看到原骨架，骨架按教材写法重写）；(4) 链表遍历是自编的，补上结构体指针。</li><li><b>思路</b>(1) 一样就往后走，但走到哪里必须停？停下以后返回什么？(2) 字符放进 *p 以后，p 要往后挪；读完以后 s 还不是字符串，差什么？(3) 只换主对角线一侧的一半：j 从哪里开始？整个矩阵都换一遍会怎样？(4) p 从头开始，什么时候停，怎么走到下一个结点。</li></ul>
+<p class="refs">对应讲义　<a href="#s4">④</a> <a href="#s6">⑥</a> <a href="#s8">⑧</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>① 走到 '\0' 必须停，不然越界；③ 放进去以后 p++；④ 把读进来的 '\n' 换成 '\0'；⑤ j 从 i + 1 开始，从 0 开始会换两遍又换回去。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+int my_strcmp(const char *s1, const char *s2)
+{
+    int i = 0;
+    while (s1[i] == s2[i] &amp;&amp; /*①*/ s1[i] != '\0')
+        i++;
+    return /*②*/ s1[i] - s2[i];
+}
+
+void line_echo(void)
+{
+    char s[81], *p = s;
+    while ((*p = getchar()) != '\n')
+        /*③*/ p++;
+    /*④*/ *p = '\0';
+    putchar('[');
+    for (p = s; *p != '\0'; p++)
+        putchar(*p);
+    putchar(']');
+}
+
+void transpose3(int a[3][3])
+{
+    int i, j, t;
+    for (i = 0; i &lt; 3; i++)
+        for (j = /*⑤*/ i + 1; j &lt; 3; j++) {
+            t = a[i][j];
+            /*⑥*/ a[i][j] = a[j][i];
+            a[j][i] = t;
+        }
+}
+
+struct item {
+    int value;
+    struct item *next;
+};
+
+int list_sum(const struct item *head)
+{
+    int s = 0;
+    const struct item *p;
+    for (p = head; /*⑦*/ p != NULL; /*⑧*/ p = p-&gt;next)
+        s += p-&gt;value;
+    return s;
+}
+
+int main(void)
+{
+    int a[3][3] = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}}, i, j;
+    struct item n3 = {30, NULL}, n2 = {-5, &amp;n3}, n1 = {12, &amp;n2};
+    printf("%d\n", my_strcmp("bus", "book"));
+    line_echo();                            /* (2) 输入一行 */
+    printf("\n");
+    transpose3(a);
+    for (i = 0; i &lt; 3; i++) {
+        for (j = 0; j &lt; 3; j++) printf("%d ", a[i][j]);
+        printf("\n");
+    }
+    printf("链表的和：%d\n", list_sum(&amp;n1));
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>Hello, C!</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>6
+[Hello, C!]
+1 4 7 
+2 5 8 
+3 6 9 
+链表的和：37</pre></div>
+</div></div>
+</section>
+<section class="recall" id="recall">
+<h2>开始之前，先回想一下</h2>
+<p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
+<p class="q"><code>while ((c = getchar()) != '\n')</code> 里的括号 → <span class="a" tabindex="0">赋值外面必须加括号，不然 c 得到的是比较的结果</span><span class="src">环04 细4</span></p>
+<p class="q">杨辉三角中间的数 → <span class="a" tabindex="0">左上 + 正上</span><span class="src">环05 ⑥</span></p>
+<p class="q">原地转置，内层 j 从 → <span class="a" tabindex="0">i + 1 开始，只换一侧</span><span class="src">环07 ③</span></p>
+<p class="q">函数把结果交回给调用者靠 → <span class="a" tabindex="0">return</span><span class="src">环09 ②</span></p>
+<p class="q">函数里的 static 局部变量 → <span class="a" tabindex="0">只初始化一次，下次调用接着用</span><span class="src">环09 细5</span></p>
+<p class="q">打开文本文件来读，方式写 → <span class="a" tabindex="0">"r"</span><span class="src">环13 ②</span></p>
+</section>
+<div class="part" id="p1">
+<h2>套路</h2>
+<p>先通读，再分类填。</p>
+</div>
+<section class="sec" id="gu" data-short="骨架">
+<h3><span class="t">填空四步</span></h3>
+<div class="code"><pre><code class="c">1  通读：程序要干什么（看题目和注释），输入什么、输出什么
+2  认变量：每个变量是干什么的？它后面在哪里被用到？
+3  看空的位置：在 if 里 → 填条件；单独一行 → 填语句；在参数里 → 填表达式
+4  用一组小数据在纸上走一遍，看输出对不对</code></pre></div>
+<p><b>看变量后面怎么用</b>是最快的线索：2012 年第 (4) 题后面用了 <code>flag</code>，那 ⑩ 就是判断 flag；2013 年 (1) 的 main 里 <code>printf("%f\n", sum(n))</code>，那 sum 一定要 <span class="a" tabindex="0">return s</span>。</p>
+</section>
+<section class="sec" id="s1" data-short="① 先通读">
+<h3><span class="no">①</span><span class="t">先通读：注释就是答案的一半</span></h3>
+<p>原卷的空几乎都带注释：<code>/* x 小于当前最小值 */</code> 下面的空就是 <code>x &lt; amin</code>；<code>/* 输入学生的成绩 */</code> 下面的空就是一句 scanf。</p>
+<ul><li>空在 <code>if ( )</code>、<code>while ( )</code> 里：填的是<b>条件</b>，不写分号。</li><li>空单独占一行、后面有分号：填的是<b>一条语句</b>，分号已经给了，不要再加。</li><li>空在表达式中间（<code>z = z * ____;</code>）：只填缺的那一项。</li><li>一个空只填一样东西。答案写得长、要两句才能完成，多半是理解错了。</li></ul>
+</section>
+<section class="sec" id="s2" data-short="② 循环和读入">
+<h3><span class="no">②</span><span class="t">循环：读到负数结束——先读一次，循环末尾再读一次</span></h3>
+<div class="code"><pre><code class="c">scanf("%f", &amp;x);                // 循环前先读第一个
+while (x &gt;= 0) {
+    处理 x;
+    scanf("%f", &amp;x);            // 循环末尾读下一个：最常考的空
+}</code></pre></div>
+<p>少了末尾那句，x 永远不变，<span class="a" tabindex="0">死循环</span>。这一类还有「读到 0 结束」「读到 # 结束」，骨架一样。</p>
+<p>break 和 continue 的空看<b>后面那句要不要执行</b>：2018-19 (3) 奇数分支 x += 5 以后不能再 x −= 3，所以填 <span class="a" tabindex="0">continue</span>；x &gt;= 10 时整个循环停，填 break 的条件 <code>x &gt;= 10</code>。</p>
+</section>
+<section class="sec" id="s3" data-short="③ 条件">
+<h3><span class="no">③</span><span class="t">条件：区间、闰年、多级判断</span></h3>
+<ul><li>区间写成两个比较用 &amp;&amp; 连：<code>-1 &lt; x &lt;= 2</code> 要写成 <code>x &gt; -1 &amp;&amp; x &lt;= 2</code>。数学写法在 C 里语法能过，但意思是 <code>(-1 &lt; x) &lt;= 2</code>，<span class="a" tabindex="0">永远为真</span>。</li><li>闰年：<code>(year % 4 == 0 &amp;&amp; year % 100 != 0) || year % 400 == 0</code>。</li><li>多级 if：前面的分支已经排除掉的情况，后面不用再写。2019-20 (1) 年龄：先比月份，<b>月份相同</b>才比日子：<code>mend &lt; mman</code> 减 1；<code>mend == mman &amp;&amp; dend &lt; dman</code> 也减 1。</li></ul>
+<div class="calc">
+  <span>2026-10-24，生日 2000-10-25</span><span class="arrow">→</span><span><span class="a" tabindex="0">25 岁</span> <span class="note">月份相同、日子还没到</span></span>
+  <span>2026-10-24，生日 2000-10-24</span><span class="arrow">→</span><span><span class="a" tabindex="0">26 岁</span> <span class="note">今天过生日，不减</span></span>
+  <span>2026-10-24，生日 2000-12-01</span><span class="arrow">→</span><span><span class="a" tabindex="0">25 岁</span> <span class="note">月份还没到</span></span>
+</div>
+<ul><li>分段函数里「其他情况」：看后面怎么输出。2018-19 (1) 后面写 <code>if (y != -1) … else printf("error")</code>，所以最后的 else 填 <span class="a" tabindex="0">y = -1</span>。</li></ul>
+</section>
+<section class="sec" id="s4" data-short="④ 数组下标">
+<h3><span class="no">④</span><span class="t">数组：两边是几，中间从哪来</span></h3>
+<ul><li>杨辉三角：<code>a[m][0] = a[m][m] = 1;</code>，中间 <code>a[m][n] = a[m-1][n-1] + a[m-1][n];</code>，一行打完 <code>printf("\n")</code>。</li><li>原地转置：只换主对角线上方的一半，内层 <code>j = i + 1</code>。j 从 0 开始，每对元素换两次，又<span class="a" tabindex="0">换回原样</span>。</li><li>3 位数拆位、拼数：百位 i、十位 j、个位 k 拼回去是 <code>i * 100 + j * 10 + k</code>；水仙花的条件是 <code>i*i*i + j*j*j + k*k*k == i*100 + j*10 + k</code>。</li></ul>
+</section>
+<section class="sec" id="s5" data-short="⑤ 函数和 static">
+<h3><span class="no">⑤</span><span class="t">函数：return、实参的 &amp;、static</span></h3>
+<ul><li>有返回类型的函数，最后一个空常常是 <code>return 结果;</code>。2013 (1) 的 sum 少了 return，main 拿到的是<span class="a" tabindex="0">随机值</span>。</li><li>scanf 的参数是地址：<code>scanf("%d", &amp;n)</code>；数组名、字符数组本身就是地址，不加 &amp;。</li><li>「下列程序运行的结果为 k=5、k=12」这类：两次调用结果不同，而函数里有 <code>int c = 3; … c++</code>，说明 c 要保留上次的值——在 int 前面填 <b>static</b>。再用结果反推实参：f(a) = a + c，第一次 c = 3 得 5，所以传 2；第二次 c = 4 得 12，所以传 8。</li></ul>
+</section>
+<section class="sec" id="s6" data-short="⑥ 字符和字符串">
+<h3><span class="no">⑥</span><span class="t">字符：'\0'、ASCII 运算、循环后移</span></h3>
+<ul><li>一个个字符放进数组以后，要补 <code>'\0'</code> 才是字符串：读一行到回车为止，把回车那一格换成 <code>'\0'</code>。</li><li>手写 strcmp：一样就往后走，走到 <code>'\0'</code> 必须停；返回两个字符之差 <code>s1[i] - s2[i]</code>。</li><li>字母循环后移 5 位：'a'–'u' 直接 <code>c = c + 5</code>；'v'–'z' 要绕回去，'v' + 5 − 26 = 'a'，所以 <span class="a" tabindex="0">c = c - 21</span>。通用写法 <code>c = (c - 'a' + 5) % 26 + 'a';</code>。</li><li>getchar 一次读一个字符，回车也是一个字符。先用 scanf 读了文件名，再用 getchar 读内容时，第一个读到的是文件名后面的<span class="a" tabindex="0">回车</span>。</li></ul>
+</section>
+<section class="sec" id="s7" data-short="⑦ 文件">
+<h3><span class="no">⑦</span><span class="t">文件：fopen 的方式、按什么读写</span></h3>
+<div class="calc">
+  <code>fopen(fname, "r")</code><span class="arrow">→</span><span><span class="a" tabindex="0">读，文件必须已经存在</span></span>
+  <code>fopen(fname, "w")</code><span class="arrow">→</span><span><span class="a" tabindex="0">写，原来的内容先清空</span></span>
+  <code>fscanf(fp, "%d,%d,%d", …)</code><span class="arrow">→</span><span><span class="a" tabindex="0">和 scanf 一样，多一个 fp</span> <span class="note">格式里的逗号要和文件里的一样</span></span>
+  <code>fputc(ch, fp)、fgetc(fp)</code><span class="arrow">→</span><span><span class="a" tabindex="0">一次一个字符</span></span>
+</div>
+<p>「以 # 结束」：<code>while ((ch = getchar()) != '#') fputc(ch, fp);</code>。fopen 的第一个空是文件名变量 fname，<b>不加引号</b>——加了引号就是打开一个名字叫 fname 的文件。</p>
+</section>
+<section class="sec" id="s8" data-short="⑧ 指针和链表">
+<h3><span class="no">⑧</span><span class="t">指针：往后挪、走到头</span></h3>
+<ul><li>指针放字符：<code>*p = c</code> 放进去以后 <code>p++</code>；最后 <code>*p = '\0'</code>。</li><li>链表遍历：<code>for (p = head; p != NULL; p = p-&gt;next)</code>。条件写成 <code>p-&gt;next != NULL</code> 会<span class="a" tabindex="0">漏掉最后一个结点</span>，空链表还会出错。</li></ul>
+</section>
+<div class="part" id="p2">
+<h2>考场上</h2>
+<p>填空的答题习惯。</p>
+</div>
+<section class="sec" id="d1" data-short="细1 原卷的老写法">
+<h3><span class="no">细1</span><span class="t">原卷的 void main、gets、印刷错误</span></h3>
+<p>原卷是按 Turbo C 年代的写法出的：<code>void main()</code>、<code>main()</code> 不写返回类型、<code>gets(fname)</code>、<code>#include "stdio.h"</code>。照着题意填就行，不用改它的写法。</p>
+<p>真有印刷错误时（2013 年杨辉三角第一个 for 印成 <code>for (m = 0; n &lt; N; m++)</code>），在答卷上写一句「此处应为 m &lt; N」，再按正确的意思填。</p>
+</section>
+<section class="sec" id="d2" data-short="细2 填完走一遍">
+<h3><span class="no">细2</span><span class="t">填完用最小的数据走一遍</span></h3>
+<p>填完每一空，挑一组最小的输入在纸上走：读到负数结束的，输入 <code>5 -1</code>；闰年用 2000、1900 各试一次；字母后移用 'v'。走不通的那一空就是填错的。</p>
+</section>
+<section class="sec" id="d3" data-short="细3 在这里怎么填">
+<h3><span class="no">细3</span><span class="t">网页和 VS 里怎么填</span></h3>
+<p>题文件里的 <code>____</code>（4 条下划线）就是空，把它整个换成你的答案；<code>____p</code> 是要填地址、字符串的空，<code>____f</code> 是要填函数名的空。没填的空一运行到，测试就算这道题「未做」，所以可以一小题一小题地填、一小题一小题地测。</p>
+</section>
+    <div class="end">
+      <nav class="ringnav"><a href="b07.html"><small>← 上一个</small>拔07 读程序难点</a><a href="index.html#ba"><small>目录</small>拔高 8 个专题</a><span></span></nav>
+    </div>
+
+  </main>
+</div>
+<div class="fab" id="fab"><button type="button" class="m" id="fab-toc" aria-label="打开目录">目录</button><button type="button" id="fab-top" aria-label="回到顶部">↑</button></div>
+<div class="drawer" id="drawer"><div class="shade"></div><div class="panel"><nav class="toc" id="toc-d" aria-label="目录"></nav></div></div>
+
+<script>
+(function () {
+  var root = document.getElementById("root");
+  var ring = root.getAttribute("data-ring");             // 目录页没有
+  var secs = Array.prototype.slice.call(document.querySelectorAll(".recall, .sec"));
+
+  function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+  function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function label(s) {
+    if (s.classList.contains("recall")) return "开始之前";
+    return s.dataset.short || "";
+  }
+
+  /* 图标：Lucide（github.com/lucide-icons/lucide，ISC 许可），24×24 线条图标，内联才能离线用 */
+  var IC = {
+    code: '<path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/>',
+    bulb: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
+    history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+    target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    left: '<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>',
+    up: '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+    eye: '<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
+    eyeoff: '<path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/>',
+    layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+    repeat: '<path d="m17 2 4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    book: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+    term: '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + IC[n] + "</svg>"; }
+
+  /* 给各种块加图标、给代码块加标题栏 */
+  var PART_IC = { p1: "code", p2: "bulb", rings: "layers", base: "repeat", cover: "book", how: "compass" };
+  var parts = document.querySelectorAll(".part");
+  parts.forEach(function (p, i) {
+    var sp = document.createElement("span");
+    sp.className = "pic"; sp.innerHTML = ic(PART_IC[p.id] || (i ? "bulb" : "code"));
+    p.insertBefore(sp, p.firstChild);
+  });
+  document.querySelectorAll(".exam > p:first-child").forEach(function (p) { p.innerHTML = ic("target") + p.innerHTML; });
+  document.querySelectorAll(".fix").forEach(function (f) {
+    var t = document.createElement("span"); t.className = "ft"; t.innerHTML = ic("alert") + "注意";
+    f.insertBefore(t, f.firstChild);
+  });
+  document.querySelectorAll(".recall h2").forEach(function (h) { h.innerHTML = ic("history") + h.innerHTML; });
+  document.querySelectorAll(".code").forEach(function (box) {
+    var hd = document.createElement("div"), isOut = !!box.querySelector("pre.o");
+    hd.className = "hd";
+    hd.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>' + (isOut ? ic("term") + "输出" : ic("code") + (box.dataset.label || "C"));
+    box.insertBefore(hd, box.firstChild);
+  });
+  /* 第二部分（细节）的节，目录高亮用紫色 */
+  var inP2 = false;
+  document.querySelectorAll(".part, .sec").forEach(function (el) {
+    if (el.classList.contains("part")) { inP2 = el !== parts[0]; return; }
+    if (inP2) el.classList.add("p2");
+  });
+
+  /* 目录：大部分做小标题，每一节一行 */
+  function buildToc(nav, withHome) {
+    if (!nav) return;
+    var h = "";
+    if (withHome && ring) h += '<a class="home" href="' + root.getAttribute("data-home") + '">' + ic("left") + "C 讲义目录</a>";
+    document.querySelectorAll(".recall, .part, .sec").forEach(function (s) {
+      if (s.classList.contains("part")) h += "<p>" + s.querySelector("h2").textContent + "</p>";
+      else if (label(s)) h += '<a href="#' + s.id + '" data-id="' + s.id + '"' + (s.classList.contains("p2") ? ' class="p2"' : "") + ">" + label(s) + "</a>";
+    });
+    nav.innerHTML = h;
+  }
+  buildToc(document.getElementById("toc"), true);
+  buildToc(document.getElementById("toc-m"), false);
+  buildToc(document.getElementById("toc-d"), true);
+  document.querySelectorAll("#toc-m a").forEach(function (a) {
+    a.addEventListener("click", function () { a.closest("details").open = false; });
+  });
+
+  /* 空：点一下揭开 */
+  function hidden() { return root.classList.contains("hide"); }
+  document.querySelectorAll(".a").forEach(function (a) {
+    function flip() { if (hidden()) { a.classList.toggle("on"); syncSec(a.closest(".sec, .recall")); } }
+    a.setAttribute("role", "button");
+    a.setAttribute("aria-label", "点开看答案");
+    a.addEventListener("click", flip);
+    a.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); flip(); } });
+  });
+  document.querySelectorAll(".oa").forEach(function (o) {
+    function flip() { if (hidden()) { o.classList.toggle("on"); syncSec(o.closest(".sec, .recall")); } }
+    o.addEventListener("click", function (e) { if (!e.target.closest(".copy")) flip(); });
+    o.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); flip(); } });
+  });
+
+  /* 每节一个「本节答案」：一次揭开这一节的全部空 */
+  function blanks(s) { return s ? s.querySelectorAll(".a, .oa") : []; }
+  function syncSec(s) {
+    if (!s || !s._btn) return;
+    var all = blanks(s), open = 0;
+    for (var i = 0; i < all.length; i++) if (all[i].classList.contains("on")) open++;
+    var allOpen = open === all.length;
+    s._btn.dataset.open = allOpen ? "1" : "";
+    s._btn.innerHTML = allOpen ? ic("eyeoff") + "盖上本节" : ic("eye") + "本节答案";
+    s._btn.hidden = !hidden();
+  }
+  secs.forEach(function (s) {
+    var head = s.querySelector("h3, h2");
+    if (!head || !blanks(s).length) return;
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "secbtn";
+    b.addEventListener("click", function () {
+      var all = blanks(s), allOpen = b.dataset.open === "1";
+      for (var i = 0; i < all.length; i++) all[i].classList.toggle("on", !allOpen);
+      syncSec(s);
+    });
+    head.appendChild(b);
+    s._btn = b;
+    syncSec(s);
+  });
+
+  /* 全部揭开 / 盖上 */
+  /* 每道题的完整程序：点一下展开 / 收起 */
+  document.querySelectorAll(".prog-btn").forEach(function (b) {
+    b.innerHTML = ic("code") + "完整程序";
+    b.addEventListener("click", function () {
+      var on = b.parentNode.classList.toggle("on");
+      b.setAttribute("aria-expanded", on ? "true" : "false");
+      b.innerHTML = ic("code") + (on ? "收起程序" : "完整程序");
+    });
+  });
+  var btn = document.getElementById("toggle");
+  function toggleAll() {
+    if (!btn) return;
+    var h = root.classList.toggle("hide");
+    document.querySelectorAll(".a.on, .oa.on, .prog.on").forEach(function (a) { a.classList.remove("on"); });
+    document.querySelectorAll(".prog-btn").forEach(function (b) { b.setAttribute("aria-expanded", "false"); b.innerHTML = ic("code") + "完整程序"; });
+    btn.innerHTML = h ? ic("eye") + "全部揭开" : ic("eyeoff") + "全部盖上";
+    btn.setAttribute("aria-pressed", h ? "false" : "true");
+    secs.forEach(syncSec);
+  }
+  if (btn) { btn.innerHTML = ic("eye") + "全部揭开"; btn.addEventListener("click", toggleAll); }
+
+  /* 当前读到哪一节：目录高亮，并记下来，下次打开可以接着读 */
+  var current = null;
+  function setCurrent(s) {
+    if (current === s) return;
+    current = s;
+    document.querySelectorAll(".toc a[data-id]").forEach(function (a) { a.classList.toggle("cur", a.dataset.id === s.id); });
+    if (ring) {
+      save("c-lesson-pos-" + ring, s.id);
+      save("c-lesson-last", { ring: ring, name: root.getAttribute("data-name"), sec: label(s) });
+    }
+  }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) setCurrent(e.target); });
+    }, { rootMargin: "-15% 0px -75% 0px" });
+    secs.forEach(function (s) { io.observe(s); });
+  }
+
+  /* 上次读到哪：给一个「继续」 */
+  var resume = document.getElementById("resume");
+  if (resume && ring && !location.hash) {
+    var pos = load("c-lesson-pos-" + ring), target = pos && document.getElementById(pos);
+    if (target && secs.indexOf(target) > 1) {
+      resume.innerHTML = '<span>上次读到</span><a href="#' + pos + '">' + label(target) + ' →</a><button type="button">不用了</button>';
+      resume.classList.add("on");
+      resume.querySelector("a").addEventListener("click", function () { resume.classList.remove("on"); });
+      resume.querySelector("button").addEventListener("click", function () { resume.classList.remove("on"); });
+    }
+  }
+  /* 目录页：标出上次看的那一环 */
+  if (!ring) {
+    var last = load("c-lesson-last");
+    if (last && last.ring) {
+      var li = document.querySelector('.rings li[data-ring="' + last.ring + '"]');
+      if (li) {
+        li.classList.add("last");
+        if (last.sec) {
+          var p = document.createElement("p");
+          p.textContent = "上次读到：" + last.sec;
+          p.style.color = "var(--green)";
+          li.appendChild(p);
+        }
+      }
+    }
+  }
+
+  /* 阅读进度条、浮动按钮 */
+  var bar = document.getElementById("progress"), fab = document.getElementById("fab"), ticking = false;
+  function onScroll() {
+    var h = document.documentElement.scrollHeight - window.innerHeight;
+    if (bar) bar.style.width = (h > 0 ? Math.min(100, window.scrollY / h * 100) : 0) + "%";
+    if (fab) fab.classList.toggle("on", window.scrollY > 500);
+    ticking = false;
+  }
+  window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(onScroll); } }, { passive: true });
+  onScroll();
+  var drawer = document.getElementById("drawer");
+  function closeDrawer() { if (drawer) drawer.classList.remove("on"); }
+  var top = document.getElementById("fab-top");
+  if (top) top.innerHTML = ic("up");
+  if (document.getElementById("fab-toc")) document.getElementById("fab-toc").innerHTML = ic("list");
+  if (top) top.addEventListener("click", function () { window.scrollTo({ top: 0 }); });
+  var ft = document.getElementById("fab-toc");
+  if (ft) ft.addEventListener("click", function () {
+    drawer.classList.add("on");
+    var cur = drawer.querySelector("a.cur");
+    if (cur) cur.scrollIntoView({ block: "center" });
+  });
+  if (drawer) {
+    drawer.querySelector(".shade").addEventListener("click", closeDrawer);
+    drawer.querySelectorAll("a").forEach(function (a) { a.addEventListener("click", closeDrawer); });
+  }
+
+  /* 键盘：J 下一节，K 上一节，A 全部揭开 / 盖上，Esc 关目录 */
+  document.addEventListener("keydown", function (e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    var t = e.target.tagName;
+    if (t === "INPUT" || t === "TEXTAREA") return;
+    if (e.key === "Escape") { closeDrawer(); return; }
+    var k = e.key.toLowerCase();
+    if ((k === "j" || k === "k") && secs.length) {
+      var i = current ? secs.indexOf(current) : -1;
+      var n = secs[Math.max(0, Math.min(secs.length - 1, i + (k === "j" ? 1 : -1)))];
+      if (n) { n.scrollIntoView({ behavior: "instant", block: "start" }); setCurrent(n); }
+    } else if (k === "a" && btn) {
+      toggleAll();
+    }
+  });
+
+  /* C 代码着色 */
+  var KW = /^(int|double|float|char|long|short|unsigned|signed|void|return|for|while|do|if|else|switch|case|break|continue|sizeof|struct|union|enum|typedef|static|extern|register|auto|const|default|goto|FILE|NULL|EOF)$/;
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function hl(src) {
+    var out = "", re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*')|(^[ \t]*#[^\n]*)|(\b\d+(?:\.\d*)?(?:[eE][-+]?\d+)?[fFlL]?\b)|([A-Za-z_]\w*)/gm, m, last = 0;
+    while ((m = re.exec(src))) {
+      out += esc(src.slice(last, m.index));
+      var t = m[0];
+      if (m[1]) out += '<span class="t-com">' + esc(t) + "</span>";
+      else if (m[2]) out += '<span class="t-str">' + esc(t) + "</span>";
+      else if (m[3]) out += '<span class="t-pre">' + esc(t) + "</span>";
+      else if (m[4]) out += '<span class="t-num">' + esc(t) + "</span>";
+      else if (KW.test(t)) out += '<span class="t-kw">' + t + "</span>";
+      else out += esc(t);
+      last = re.lastIndex;
+    }
+    return out + esc(src.slice(last));
+  }
+  document.querySelectorAll("pre code.c").forEach(function (c) { c.innerHTML = hl(c.textContent); });
+
+  /* 复制：方便贴进 草稿.c 自己跑 */
+  document.querySelectorAll(".code").forEach(function (box) {
+    var pre = box.querySelector("pre"), b = document.createElement("button");
+    b.type = "button"; b.className = "copy"; b.innerHTML = ic("copy") + "复制";
+    b.addEventListener("click", function (e) {
+      e.stopPropagation();
+      function done(msg) { b.innerHTML = ic("check") + msg; setTimeout(function () { b.innerHTML = ic("copy") + "复制"; }, 1400); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(pre);
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        done("已选中，按 Ctrl+C");
+      }
+      try { navigator.clipboard.writeText(pre.textContent).then(function () { done("已复制"); }, fallback); }
+      catch (err) { fallback(); }
+    });
+    (box.querySelector(".hd") || box).appendChild(b);
+  });
+})();
+</script>

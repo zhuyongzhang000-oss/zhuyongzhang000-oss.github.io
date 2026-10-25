@@ -405,7 +405,7 @@ int main(void)
 <p>(2) <code>sym_get(b, n, i, j)</code>：b 是对称矩阵按 (1) 压缩的结果，返回第 i 行第 j 列的元素。</p>
 <p>i &lt; j 时它在上三角，没存，要用对称性去取。</p>
 <p>(3) <code>sym_mul_vec(b, n, x, y)</code>：只用压缩后的 b，算 y = A × x（A 是 n 阶对称矩阵，x、y 是长 n 的向量）。</p></div>
-<ul class="hints"><li><b>依据</b>学长清单「二维转一维、上下三角、压缩存储」；基础环07 只练过输出左下三角。</li><li><b>思路</b>第 i 行前面有 1 + 2 + … + i 个数，所以 a[i][j]（j &lt;= i）在 b 的第几个？(3) y[i] = a[i][0]×x[0] + … + a[i][n-1]×x[n-1]，每个 a[i][j] 用 (2) 取。</li></ul>
+<ul class="hints"><li><b>依据</b>学长清单「二维转一维、上下三角、压缩存储」；基础环07 只练过输出左下三角。压缩存储在旧卷里出现在数据结构部分（831 是 C + 数据结构），单考 C 优先级低，时间紧可以跳过。</li><li><b>思路</b>第 i 行前面有 1 + 2 + … + i 个数，所以 a[i][j]（j &lt;= i）在 b 的第几个？(3) y[i] = a[i][0]×x[0] + … + a[i][n-1]×x[n-1]，每个 a[i][j] 用 (2) 取。</li></ul>
 <p class="refs">对应讲义　<a href="#s2">②</a> <a href="#s3">③</a></p>
 <div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
 <div class="prog-body">
@@ -527,7 +527,7 @@ int main(void)
 <div class="req"><p class="lab">要求</p><p>两个函数（下标从 0 开始，n &lt;= 10）。</p>
 <p>(1) <code>tri_pack(a, n, b)</code>：按行存，返回存了几个数（n = 1 时只有 1 个）。</p>
 <p>(2) <code>tri_get(b, n, i, j)</code>：返回原矩阵第 i 行第 j 列的元素；不在三条线上的返回 0。</p></div>
-<ul class="hints"><li><b>依据</b>学长清单「对角矩阵」。</li><li><b>思路</b>(2) 先判断 |i - j| &lt;= 1。第 0 行只有 2 个数，后面每行 3 个（最后一行 2 个），a[i][j] 前面一共有几个数？化简以后是一个很短的式子。</li></ul>
+<ul class="hints"><li><b>依据</b>学长清单「对角矩阵」。和题2 一样来自旧卷的数据结构部分，单考 C 优先级低。</li><li><b>思路</b>(2) 先判断 |i - j| &lt;= 1。第 0 行只有 2 个数，后面每行 3 个（最后一行 2 个），a[i][j] 前面一共有几个数？化简以后是一个很短的式子。</li></ul>
 <p class="refs">对应讲义　<a href="#s5">⑤</a></p>
 <div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
 <div class="prog-body">
@@ -659,7 +659,7 @@ for (i = n - 1 - k; i &gt; k; i--) a[i][k] = v++;          // 左：向上</code
 <p>教材和数据结构书上的公式常是下标从 1 开始：a[i][j] 存在 b[i(i−1)/2 + j − 1]（b 也从 0 开始时）。别背，用 ② 的方法现场数：第 i 行前面有 1 + … + (i − 1) 个。</p>
 </section>
     <div class="end">
-      <nav class="ringnav"><a href="b01.html"><small>← 上一个</small>拔01 字符串进阶</a><a href="index.html#ba"><small>目录</small>拔高 7 个专题</a><a href="b03.html"><small>下一个 →</small>拔03 递归回溯</a></nav>
+      <nav class="ringnav"><a href="b01.html"><small>← 上一个</small>拔01 字符串进阶</a><a href="index.html#ba"><small>目录</small>拔高 8 个专题</a><a href="b03.html"><small>下一个 →</small>拔03 递归回溯</a></nav>
     </div>
 
   </main>

@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
 <title>拔07 读程序讲义</title>
-<meta name="description" content="C 语言拔高 07：读程序写结果的八个方法——变量追踪表、递归调用栈、static 只初始化一次、*p++ 和指针运算、宏先展开再算、求值顺序和未定义行为、结构体指针的优先级、二维数组和行指针。配 32 道自测（多数是川师本科期末卷原题）。">
+<meta name="description" content="C 语言拔高 07：读程序写结果的八个方法——变量追踪表、递归调用栈、static 只初始化一次、*p++ 和指针运算、宏先展开再算、求值顺序和未定义行为、结构体指针的优先级、二维数组和行指针；再加 2012、2013 考研原卷的基础题。配 53 道自测（川师本科期末卷和 2012、2013、2016 考研原卷的题为主）。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
@@ -336,7 +336,7 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
       <p class="kicker"><a href="index.html#ba">C 语言讲义</a><span class="chip">拔高 07</span></p>
       <h1>读程序难点：追踪表、递归栈、static、指针、宏、求值顺序</h1>
       <div class="intro">
-        <p>单考 C 以后，读程序写结果几乎一定有（期末卷每卷 4 题 × 4 分）。读程序题不考算法，考的是你能不能<b>一步不差</b>地当一回 CPU。这一篇只讲方法；练习在「自测」里，32 道题多数是川师本科期末卷的原题。</p>
+        <p>单考 C 以后，读程序写结果几乎一定有（期末卷每卷 4 题 × 4 分）。读程序题不考算法，考的是你能不能<b>一步不差</b>地当一回 CPU。这一篇只讲方法；练习在「自测」里，53 道题：川师本科期末卷的原题，加上 2012（单考 C 的那张）、2013、2016 考研原卷的读程序、选择、判断题。</p>
       </div>
       <div class="tools">
         <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
@@ -356,7 +356,7 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
 </section>
 <div class="part" id="p1">
 <h2>方法</h2>
-<p>读程序题的八个工具。自测题后面的「→ ③」就是这里的节号。</p>
+<p>读程序题的八个工具，加上原卷基础题的易错点。自测题后面的「→ ③」就是这里的节号。</p>
 </div>
 <section class="sec" id="s1" data-short="① 追踪表">
 <h3><span class="no">①</span><span class="t">追踪表：一列一个变量，一行一步</span></h3>
@@ -396,7 +396,15 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
     return m;
 }</code></pre></div>
 <p>调用两次 fs(4, 1)：第一次 i = 3、m = 8；第二次 i 从 3 开始 += 9 得 12，m = <span class="a" tabindex="0">17</span>。auto 变量（普通局部变量）每次进函数都重新初始化。</p>
-<p><b>同名变量</b>：形参、局部变量和全局变量同名时，函数里用的是离得最近的那个；形参是复制品，改它不影响全局变量（环09 细4）。</p>
+<p><b>同名变量</b>：形参、局部变量和全局变量同名时，函数里用的是离得最近的那个；形参是复制品，改它不影响全局变量（环09 细4）。2012 原卷四-1 三个 y 同名：全局 5、main 里 3、形参是复制品，输出里的 y 和全局的 5 <span class="a" tabindex="0">没有关系</span>。</p>
+<p>2016 年考过 10 分的简答「static 全局变量和普通全局变量、static 局部变量和普通局部变量有什么区别」，按下面四条答：</p>
+<div class="tbl"><table>
+<tr><th></th><th>存在哪、活多久</th><th>作用域（谁能用）</th><th>不赋初值时</th></tr>
+<tr><td>普通局部变量</td><td>栈上，函数调用结束就释放</td><td>本函数（本复合语句）</td><td>不确定</td></tr>
+<tr><td>static 局部变量</td><td>静态存储区，程序运行期间一直在</td><td>本函数，但值保留到下次调用</td><td>0，而且只初始化一次</td></tr>
+<tr><td>普通全局变量</td><td>静态存储区</td><td>从定义处到文件末尾；别的文件 extern 声明后也能用</td><td>0</td></tr>
+<tr><td>static 全局变量</td><td>静态存储区</td><td>只在本文件，别的文件用不了</td><td>0</td></tr>
+</table></div>
 </section>
 <section class="sec" id="s4" data-short="④ 指针运算">
 <h3><span class="no">④</span><span class="t">指针：先加括号，再画箭头</span></h3>
@@ -449,6 +457,18 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
 </div>
 <p>二维数组按行连续存放（环07 细4），所以 <code>int *q = &amp;a[0][0];</code> 以后，q[i × 列数 + j] 就是 a[i][j]。3 × 3 的主对角线是 q[0]、q[4]、q[8]。</p>
 </section>
+<section class="sec" id="s9" data-short="⑨ 原卷基础题">
+<h3><span class="no">⑨</span><span class="t">原卷的填空、选择、判断：这几处最容易丢分</span></h3>
+<p>2012、2013 考研原卷的基础题比期末卷还基础，丢分都丢在下面这些「以为会了」的地方：</p>
+<div class="calc">
+  <span>'c' 和 "c"</span><span class="arrow">→</span><span><span class="a" tabindex="0">1 个字节和 2 个字节</span> <span class="note">字符串末尾还有 '\0'</span></span>
+  <code>enum { a1, a2 = 4, a3, a4 = 10 }</code><span class="arrow">→</span><span><span class="a" tabindex="0">a1 = 0，a3 = 5</span> <span class="note">没写值的接着前一个加 1</span></span>
+  <code>5 % 2、5.0 % 2</code><span class="arrow">→</span><span><span class="a" tabindex="0">1、编译出错</span> <span class="note">% 只能用于整数</span></span>
+  <code>y = x &gt;= 0 ? x : -x;</code><span class="arrow">→</span><span><span class="a" tabindex="0">y 是 x 的绝对值</span> <span class="note">?: 优先级很低，几乎最后算</span></span>
+  <span>strcat(s, " Sun!")，s 原来是 "My"</span><span class="arrow">→</span><span><span class="a" tabindex="0">"My Sun!"</span> <span class="note">接在 s 的 '\0' 那里，s 要够大</span></span>
+</div>
+<ul><li>大小写互换：大写 + 32 变小写，小写 − 32 变大写（'a' − 'A' = 32）。注意要写成 <code>if … else if …</code>：写成两个独立的 if，大写字母加 32 变成小写以后，<span class="a" tabindex="0">又被第二个 if 减回去</span>。</li><li>判断小写字母：<code>c &gt;= 'a' &amp;&amp; c &lt;= 'z'</code>。<code>'a' &lt;= c &lt;= 'z'</code> 语法能过，但意思是 <code>('a' &lt;= c) &lt;= 'z'</code>，永远为真。</li><li>两个字符串逐个比，停下来的位置相减：<code>ch1[i] - ch2[i]</code>，是两个字符的 ASCII 码之差，a 是 97，t 是 116。</li><li>定义数组长度要用常量：<code>int n; int arr[n];</code> 考试按「不行」答（C89），用 <code>#define N 10</code>。</li><li>构成 C 程序的基本单位是函数；main 和库函数的名字不是用户起的。</li></ul>
+</section>
 <div class="part" id="p2">
 <h2>考场上</h2>
 <p>读程序题的答题习惯。</p>
@@ -462,7 +482,7 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
 <p>期末卷的代码常有老写法（<code>main()</code> 不写 int、函数不写返回类型）和转写错误。先判断是不是故意的：是故意的（比如 <code>if (x = y + z)</code> 是赋值），就按 C 的规则走；明显是印刷错误，就按最合理的意思做，并在答案旁写一句说明。</p>
 </section>
     <div class="end">
-      <nav class="ringnav"><a href="b06.html"><small>← 上一个</small>拔06 数学精度</a><a href="index.html#ba"><small>目录</small>拔高 7 个专题</a><span></span></nav>
+      <nav class="ringnav"><a href="b06.html"><small>← 上一个</small>拔06 数学精度</a><a href="index.html#ba"><small>目录</small>拔高 8 个专题</a><a href="b08.html"><small>下一个 →</small>拔08 程序填空</a></nav>
     </div>
 
   </main>

@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
 <title>拔03 递归回溯讲义</title>
-<meta name="description" content="C 语言拔高 03：回溯模板（做选择、递归、撤销）、有重复元素的全排列去重、组合的 start 参数和剪枝、按格子编号填拉丁方阵、计数型递归。">
+<meta name="description" content="C 语言拔高 03：回溯模板（做选择、递归、撤销）、有重复元素的全排列去重、组合的 start 参数和剪枝、按格子编号填拉丁方阵、计数型递归 f(n, m)（2023③ 整数拆分、2016⑤ 凑钱）。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
@@ -334,9 +334,9 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
   <main>
     <header>
       <p class="kicker"><a href="index.html#ba">C 语言讲义</a><span class="chip">拔高 03</span></p>
-      <h1>递归回溯：排列、组合、填格子、数方案</h1>
+      <h1>递归回溯：排列、整数拆分、填格子、组合</h1>
       <div class="intro">
-        <p>2023② 拉丁方阵是全部真题里最难的一道，用的就是回溯。回溯只有一个模板：这一步有哪些选择 → 逐个试 → 能放就放下、去下一步 → 回来时撤销。这一环的四道题，就是这个模板的四种填法。</p>
+        <p>2023② 拉丁方阵是全部真题里最难的一道，用的就是回溯。回溯只有一个模板：这一步有哪些选择 → 逐个试 → 能放就放下、去下一步 → 回来时撤销。2023③ 整数拆分只问个数，用的是计数型递归 f(n, m)；要输出每一种拆法时，又回到回溯模板。</p>
       </div>
       <div class="tools">
         <button class="btn" id="toggle" type="button" aria-pressed="false">全部揭开</button>
@@ -425,62 +425,80 @@ cbaa
 共 12 个</pre></div>
 </div></div>
 </section>
-<section class="sec prob" id="t2" data-short="题2 选 k 个凑和">
-<h3><span class="no">题2</span><span class="t">选 k 个凑和</span></h3>
-<p class="pmeta"><span class="ptag">必做</span> · 回溯模板第二型</p>
-<div class="stem"><p>从 n 个互不相同的正整数 a[0] ~ a[n-1] 里选 k 个，使它们的和等于 target，输出所有选法。</p></div>
-<div class="req"><p class="lab">要求</p><p><code>comb_sum(a, n, k, target)</code> 打印每一种选法（一行一组，按下标从小到大写出这 k 个数，数之间一个空格），各组按「下标组合」的字典序输出；返回一共几组（没有就什么都不打印，返回 0）。n &lt;= 15。</p>
-<p>例如 a = {1, 2, 3, 4, 5}，k = 3，target = 10：打印 "1 4 5\n2 3 5\n"，返回 2。</p></div>
-<ul class="hints"><li><b>依据</b>2016⑤「1、2、5 不同个数组合的和为 100」是枚举凑数；数一多、要输出每一组时就要用组合回溯（推测）。</li><li><b>思路</b>dfs(start, 已选几个, 当前和)：下一个数只从 start 往后选，这样同一组不会以不同顺序出现两次。剪枝：已选够 k 个就停；和已经超过 target 也可以停（都是正数）。</li></ul>
-<p class="refs">对应讲义　<a href="#s3">③</a></p>
+<section class="sec prob" id="t2" data-short="题2 整数拆分">
+<h3><span class="no">题2</span><span class="t">整数拆分</span></h3>
+<p class="pmeta"><span class="ptag">必做·难</span> · 2023 第3题（考生回忆版） · 限时 30 分钟</p>
+<div class="stem"><p>把正整数 n 写成若干个正整数的和 n = n1 + n2 + … + nk（n1 &gt;= n2 &gt;= … &gt;= nk &gt;= 1），问一共有几种写法。例如 6 有 11 种：6、5+1、4+2、4+1+1、3+3、3+2+1、3+1+1+1、2+2+2、2+2+1+1、2+1+1+1+1、1+1+1+1+1+1。</p></div>
+<div class="req"><p class="lab">要求</p><p>两个函数。</p>
+<p>(1) <code>count_partitions(n)</code>：返回 n 的拆法个数。1 &lt;= n &lt;= 50（50 有 204226 种）。</p>
+<p>(2) <code>print_partitions(n)</code>：按上面例子的顺序打印每一种拆法，一行一种，写成 "6=4+1+1" 这样（只有一份写 "6=6"），返回一共几种。1 &lt;= n &lt;= 20。每一种里的数从大到小；各种之间，第一个数大的在前，第一个数一样比第二个，依此类推。</p></div>
+<ul class="hints"><li><b>依据</b>2023③。学长回忆里漏了这一题，2026-10 从另一份考生回忆里补上。和 2016⑤「1、2、5 凑 100」是同一类计数递归。</li><li><b>注意</b>回忆版只说「有几种」，没说要不要输出每一种。(2) 是怕考「输出所有拆法」补的。</li><li><b>思路</b>(1) <code>f(n, m)</code> =「n 拆成每份都不超过 m」的拆法数。按「有没有用到 m」分两类：用到 m：先拿出一份 m，剩下 n − m 每份还是不超过 m → <code>f(n − m, m)</code>；没用到 m → <code>f(n, m − 1)</code>。基例：n == 0 → 1；m == 0 → 0；m &gt; n 时和 <code>f(n, n)</code> 一样。答案是 <code>f(n, n)</code>。(2) 回溯：dfs(剩下多少, 这一份最多放多少, 已经放了几份)。这一份 p 从「最多」试到 1，放进 part[]，再 dfs(剩下 − p, p, …)；剩下 0 时打印一行。</li></ul>
+<p class="refs">对应讲义　<a href="#s6">⑥</a> <a href="#s7">⑦</a></p>
 <div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
 <div class="prog-body">
-<p class="tip"><b>易错</b>只从 start 往后选（组合不是排列）；选够 k 个再判断和；全局变量每次重置。</p>
+<p class="tip"><b>易错</b><code>f(n, m)</code> 的两个分支互不重叠（用不用 m）；m &gt; n 时化成 <code>f(n, n)</code>；打印时下一份最多放 p，保证从大到小。</p>
 <div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
 
-static const int *A;
-static int N, K, T, pick[15], cnt;
-
-static void dfs(int start, int m, int sum)
+static int f(int n, int m)              /* n 拆成每份都不超过 m 的拆法数 */
 {
-    int i;
-    if (m == K) {
-        if (sum == T) {
-            for (i = 0; i &lt; K; i++) printf(i ? " %d" : "%d", pick[i]);
-            printf("\n");
-            cnt++;
-        }
+    if (n == 0) return 1;
+    if (m == 0) return 0;
+    if (m &gt; n) return f(n, n);
+    return f(n - m, m) + f(n, m - 1);   /* 用到 m ／ 没用到 m */
+}
+
+int count_partitions(int n)
+{
+    return f(n, n);
+}
+
+static int N, part[64], cnt;
+
+static void dfs(int rest, int maxp, int k)
+{
+    int i, p;
+    if (rest == 0) {
+        printf("%d=", N);
+        for (i = 0; i &lt; k; i++) printf(i ? "+%d" : "%d", part[i]);
+        printf("\n");
+        cnt++;
         return;
     }
-    for (i = start; i &lt; N; i++) {
-        if (sum + A[i] &gt; T) continue;               /* 剪枝：都是正数，再加只会更大 */
-        pick[m] = A[i];
-        dfs(i + 1, m + 1, sum + A[i]);
+    for (p = maxp &lt; rest ? maxp : rest; p &gt;= 1; p--) {
+        part[k] = p;
+        dfs(rest - p, p, k + 1);        /* 下一份不超过 p */
     }
 }
 
-int comb_sum(const int a[], int n, int k, int target)
+int print_partitions(int n)
 {
-    A = a; N = n; K = k; T = target;
+    N = n;
     cnt = 0;
-    dfs(0, 0, 0);
+    dfs(n, n, 0);
     return cnt;
 }
 
 int main(void)
 {
-    int a[15], n, k, target, i, cnt;
-    scanf("%d %d %d", &amp;n, &amp;k, &amp;target);
-    for (i = 0; i &lt; n; i++) scanf("%d", &amp;a[i]);
-    cnt = comb_sum(a, n, k, target);
-    printf("共 %d 组\n", cnt);
+    int n;
+    scanf("%d", &amp;n);
+    printf("%d 一共有 %d 种拆法\n", n, count_partitions(n));
+    print_partitions(n);
     return 0;
 }</code></pre></div>
-<div class="io"><p class="lab">输入</p><pre>7 3 15
-3 9 8 4 5 7 10</pre></div>
-<div class="io"><p class="lab">运行结果</p><pre>3 8 4
-3 5 7
-共 2 组</pre></div>
+<div class="io"><p class="lab">输入</p><pre>6</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>6 一共有 11 种拆法
+6=6
+6=5+1
+6=4+2
+6=4+1+1
+6=3+3
+6=3+2+1
+6=3+1+1+1
+6=2+2+2
+6=2+2+1+1
+6=2+1+1+1+1
+6=1+1+1+1+1+1</pre></div>
 </div></div>
 </section>
 <section class="sec prob" id="t3" data-short="题3 补全拉丁方阵">
@@ -556,38 +574,62 @@ int main(void)
 5 3 1 2 4 </pre></div>
 </div></div>
 </section>
-<section class="sec prob" id="t4" data-short="题4 凑钱方案数">
-<h3><span class="no">题4</span><span class="t">凑钱方案数</span></h3>
-<p class="pmeta"><span class="ptag">选做</span> · 2016 第5题的推广</p>
-<div class="stem"><p>有 k 种面值 coins[0] ~ coins[k-1]（互不相同的正整数，顺序任意），每种可以用任意多张，凑出 amount 一共有几种方案？只看每种用几张，不看先后。</p></div>
-<div class="req"><p class="lab">要求</p><p><code>count_ways(amount, coins, k)</code> 返回方案数。amount &lt;= 300，k &lt;= 6。</p>
-<p>例如 <code>count_ways(100, {1, 2, 5}, 3)</code> 返回 541；amount 为 0 时算 1 种（什么都不用）。</p></div>
-<ul class="hints"><li><b>依据</b>2016⑤「求出用 1、2、5 这三个数不同个数组合的和为 100 的组合个数」（答案 541）。原题三重循环就能做；面值种类不固定时，循环层数写不出来，只能递归。</li><li><b>思路</b>f(剩下的钱, 从第 i 种面值开始) = 用一张第 i 种 f(剩下 − coins[i], i) + 不再用第 i 种 f(剩下, i + 1)。基例：剩下 0 → 1 种；剩下 &lt; 0 或者面值用完了 → 0 种。</li></ul>
-<p class="refs">对应讲义　<a href="#s6">⑥</a></p>
+<section class="sec prob" id="t4" data-short="题4 选 k 个凑和">
+<h3><span class="no">题4</span><span class="t">选 k 个凑和</span></h3>
+<p class="pmeta"><span class="ptag">选做</span> · 回溯模板第二型</p>
+<div class="stem"><p>从 n 个互不相同的正整数 a[0] ~ a[n-1] 里选 k 个，使它们的和等于 target，输出所有选法。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>comb_sum(a, n, k, target)</code> 打印每一种选法（一行一组，按下标从小到大写出这 k 个数，数之间一个空格），各组按「下标组合」的字典序输出；返回一共几组（没有就什么都不打印，返回 0）。n &lt;= 15。</p>
+<p>例如 a = {1, 2, 3, 4, 5}，k = 3，target = 10：打印 "1 4 5\n2 3 5\n"，返回 2。</p></div>
+<ul class="hints"><li><b>依据</b>2016⑤「1、2、5 不同个数组合的和为 100」是枚举凑数；数一多、要输出每一组时就要用组合回溯（推测，所以放在选做）。</li><li><b>思路</b>dfs(start, 已选几个, 当前和)：下一个数只从 start 往后选，这样同一组不会以不同顺序出现两次。剪枝：已选够 k 个就停；和已经超过 target 也可以停（都是正数）。</li></ul>
+<p class="refs">对应讲义　<a href="#s3">③</a></p>
 <div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
 <div class="prog-body">
-<p class="tip"><b>易错</b>「用一张第 i 种」之后还从第 i 种开始（可以再用）；不用就去 i + 1，这样方案不会重复。</p>
+<p class="tip"><b>易错</b>只从 start 往后选（组合不是排列）；选够 k 个再判断和；全局变量每次重置。</p>
 <div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
 
-int count_ways(int amount, const int coins[], int k)
+static const int *A;
+static int N, K, T, pick[15], cnt;
+
+static void dfs(int start, int m, int sum)
 {
-    if (amount == 0) return 1;
-    if (amount &lt; 0 || k == 0) return 0;
-    /* 用一张 coins[0]，或者以后都不用 coins[0]（看后面 k-1 种） */
-    return count_ways(amount - coins[0], coins, k) + count_ways(amount, coins + 1, k - 1);
+    int i;
+    if (m == K) {
+        if (sum == T) {
+            for (i = 0; i &lt; K; i++) printf(i ? " %d" : "%d", pick[i]);
+            printf("\n");
+            cnt++;
+        }
+        return;
+    }
+    for (i = start; i &lt; N; i++) {
+        if (sum + A[i] &gt; T) continue;               /* 剪枝：都是正数，再加只会更大 */
+        pick[m] = A[i];
+        dfs(i + 1, m + 1, sum + A[i]);
+    }
+}
+
+int comb_sum(const int a[], int n, int k, int target)
+{
+    A = a; N = n; K = k; T = target;
+    cnt = 0;
+    dfs(0, 0, 0);
+    return cnt;
 }
 
 int main(void)
 {
-    int coins[6], k, amount, i;
-    scanf("%d %d", &amp;amount, &amp;k);
-    for (i = 0; i &lt; k; i++) scanf("%d", &amp;coins[i]);
-    printf("%d 种\n", count_ways(amount, coins, k));
+    int a[15], n, k, target, i, cnt;
+    scanf("%d %d %d", &amp;n, &amp;k, &amp;target);
+    for (i = 0; i &lt; n; i++) scanf("%d", &amp;a[i]);
+    cnt = comb_sum(a, n, k, target);
+    printf("共 %d 组\n", cnt);
     return 0;
 }</code></pre></div>
-<div class="io"><p class="lab">输入</p><pre>100 3
-1 2 5</pre></div>
-<div class="io"><p class="lab">运行结果</p><pre>541 种</pre></div>
+<div class="io"><p class="lab">输入</p><pre>7 3 15
+3 9 8 4 5 7 10</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>3 8 4
+3 5 7
+共 2 组</pre></div>
 </div></div>
 </section>
 <section class="recall" id="recall">
@@ -601,7 +643,7 @@ int main(void)
 </section>
 <div class="part" id="p1">
 <h2>套路</h2>
-<p>一个模板，四种填法。</p>
+<p>一个回溯模板，加一个计数递归。</p>
 </div>
 <section class="sec" id="gu" data-short="骨架">
 <h3><span class="t">回溯骨架</span></h3>
@@ -668,19 +710,42 @@ int main(void)
 <p>补全题（拉丁方阵、数独）和「从空白开始填」有两处不同：</p>
 <ul><li>走到已经有数的格子，直接 <code>return dfs(cell + 1);</code>，不试也不撤销。</li><li>检查一个数能不能放，要看<b>整行整列</b>。从空白开始填时，只需要看已经填过的那部分（前面的格子）；有给定的数时，后面的格子里也可能已经有这个数。</li><li>只要第一个解：递归返回 1 就一路 <code>return 1</code>，不再撤销；全部失败才返回 0。因为每次失败都把格子改回 0，<b>无解时整个方阵自动恢复原样</b>。</li></ul>
 </section>
-<section class="sec" id="s6" data-short="⑥ 数方案：f(剩下, i)">
-<h3><span class="no">⑥</span><span class="t">计数型递归：只要个数，不用输出</span></h3>
-<p>「1、2、5 凑 100 有几种」只问个数。f(剩下的钱, 从第 i 种面值开始)：</p>
-<div class="code"><pre><code class="c">if (剩下 == 0) return 1;                     // 恰好凑齐：一种
-if (剩下 &lt; 0 || 面值用完) return 0;
-return f(剩下 - coins[i], i)                 // 再用一张第 i 种（下次还能用）
-     + f(剩下, i + 1);                       // 第 i 种不再用</code></pre></div>
-<p>两个分支互不重叠：一个「至少再用一张第 i 种」，一个「以后不用第 i 种」，所以每种方案只被数一次。</p>
-<p>把「再用一张」写成 <code>f(剩下 - coins[i], i + 1)</code>，就变成每种面值最多用 <span class="a" tabindex="0">一张</span>了。</p>
+<section class="sec" id="s6" data-short="⑥ 数方案：f(n, m)">
+<h3><span class="no">⑥</span><span class="t">计数型递归：只要个数，按「用没用到」分两类</span></h3>
+<p>2023③「6 写成若干个数的和有几种」只问个数。直接枚举很难不重复，<b>加一个参数</b>就好想了：</p>
+<p>f(n, m) = n 拆成每份都<b>不超过 m</b> 的拆法数。答案是 f(n, n)。</p>
+<p>看最大的那份能不能是 m，所有拆法分成不重叠的两类：</p>
+<div class="code"><pre><code class="c">if (n == 0) return 1;                // 拆完了：一种
+if (m == 0) return 0;                // 还剩 n 却没有数可用
+if (m &gt; n) return f(n, n);           // 每份不超过 m 和不超过 n 一样
+return f(n - m, m)                   // 用到 m：拿出一份 m，剩下的每份仍不超过 m
+     + f(n, m - 1);                  // 没用到 m：每份都不超过 m - 1</code></pre></div>
+<div class="calc">
+  <code>f(6, 6)</code><span class="arrow">→</span><span><span class="a" tabindex="0">11</span> <span class="note">2023③ 的例子</span></span>
+  <code>f(4, 2)</code><span class="arrow">→</span><span><span class="a" tabindex="0">3</span> <span class="note">2+2、2+1+1、1+1+1+1</span></span>
+  <code>f(50, 50)</code><span class="arrow">→</span><span><span class="a" tabindex="0">204226</span> <span class="note">用 int 够</span></span>
+</div>
+<p>基例里 <code>n == 0</code> 返回 1 最容易写错：拿出一份 m 之后正好拆完，是<b>一种</b>拆法，不是 0 种。如果写成 0，f(6, 6) 就成了 <span class="a" tabindex="0">0</span>。</p>
+<p><b>凑钱是同一类</b>（2016⑤「1、2、5 凑 100 有 541 种」）：f(剩下的钱, 从第 i 种面值开始) = 再用一张第 i 种 f(剩下 − coins[i], i) + 第 i 种不再用 f(剩下, i + 1)。把整数拆分看成「面值是 1、2、…、n 的凑钱」，两题就是一道题。</p>
 <div class="exam">
 <p>真题里这样考</p>
 <p class="q">用 1、2、5 这三个数不同个数组合的和为 100 的组合个数 → <span class="a" tabindex="0">541。三重循环也能做（环04），面值种类不固定时只能递归</span><span class="src">A-2016-5</span></p>
+<p class="q">把正整数 n 写成若干个正整数的和，有几种写法（6 有 11 种） → <span class="a" tabindex="0">f(n, n)</span><span class="src">2023③（考生回忆）</span></p>
 </div>
+</section>
+<section class="sec" id="s7" data-short="⑦ 输出每种拆法">
+<h3><span class="no">⑦</span><span class="t">要输出每一种：回溯里传「这一份最多放多少」</span></h3>
+<p>从大到小写、不重复，只要规定<b>后一份不超过前一份</b>：</p>
+<div class="code"><pre><code class="c">void dfs(int rest, int maxp, int k)  // 还剩 rest，这一份最多 maxp，已经放了 k 份
+{
+    if (rest == 0) { 打印 part[0..k-1]; return; }
+    for (p = min(maxp, rest); p &gt;= 1; p--) {
+        part[k] = p;
+        dfs(rest - p, p, k + 1);     // 下一份最多 p
+    }
+}</code></pre></div>
+<p>第一次调用是 <code>dfs(n, n, 0)</code>。p 从大往小试，输出顺序就是 6、5+1、4+2、4+1+1……和题目的例子一样。这里不用撤销：part[k] 下一次循环会被<span class="a" tabindex="0">直接覆盖</span>，rest、maxp 是参数。</p>
+<p>和 ③ 组合的 start 是同一个想法：<b>规定一个顺序</b>，同一组数就只会出现一次。</p>
 </section>
 <div class="part" id="p2">
 <h2>易错清单</h2>
@@ -699,7 +764,7 @@ return f(剩下 - coins[i], i)                 // 再用一张第 i 种（下次
 <p>排列 n! 、组合 C(n, k)、拉丁方阵都长得极快。题目说 n &lt;= 6、n &lt;= 8 是正常的；考试写程序时在数组大小上留够余量就行，不用担心效率。</p>
 </section>
     <div class="end">
-      <nav class="ringnav"><a href="b02.html"><small>← 上一个</small>拔02 矩阵综合</a><a href="index.html#ba"><small>目录</small>拔高 7 个专题</a><a href="b04.html"><small>下一个 →</small>拔04 指针与函数接口</a></nav>
+      <nav class="ringnav"><a href="b02.html"><small>← 上一个</small>拔02 矩阵综合</a><a href="index.html#ba"><small>目录</small>拔高 8 个专题</a><a href="b04.html"><small>下一个 →</small>拔04 指针与函数接口</a></nav>
     </div>
 
   </main>

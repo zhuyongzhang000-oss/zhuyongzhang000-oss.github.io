@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <!-- 这个文件由 公共/讲义/build.py 生成，要改内容请改 公共/讲义 里的源文件。 -->
 <title>拔01 字符串进阶讲义</title>
-<meta name="description" content="C 语言拔高 01：暴力子串匹配、读写游标替换、分词与单词逆序、数字计数数组、题意缺损的处理。">
+<meta name="description" content="C 语言拔高 01：暴力子串匹配、读写游标替换、字符串最短压缩（从后往前记最优）、数字计数数组与拆位、分词与单词逆序、题意缺损的处理。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@300;400;500;700&family=Atkinson+Hyperlegible+Next:wght@300;400;500;700&display=swap" media="print" onload="this.media='all'">
@@ -334,7 +334,7 @@ pre.fig { margin: 8px 0; padding: 0; font: 14.5px/1.6 var(--f-code); white-space
   <main>
     <header>
       <p class="kicker"><a href="index.html#ba">C 语言讲义</a><span class="chip">拔高 01</span></p>
-      <h1>字符串进阶：匹配、替换、分词、按规则重构</h1>
+      <h1>字符串进阶：匹配、替换、压缩、分词</h1>
       <div class="intro">
         <p>基础环08、环11 练的是「一个游标走到底」。拔高的字符串题要两个游标配合：一个找、一个写；或者一个指词头、一个指词尾。所有题都先想清楚三件事：游标从哪开始、什么时候停、停下以后 out 补没补 '\0'。</p>
       </div>
@@ -413,9 +413,145 @@ se SE</pre></div>
 替换后：she SElls SEa shells</pre></div>
 </div></div>
 </section>
-<section class="sec prob" id="t2" data-short="题2 单词逆序">
-<h3><span class="no">题2</span><span class="t">单词逆序</span></h3>
-<p class="pmeta"><span class="ptag">必做</span> · 2017 第5题的延伸</p>
+<section class="sec prob" id="t2" data-short="题2 字符串简化">
+<h3><span class="no">题2</span><span class="t">字符串简化</span></h3>
+<p class="pmeta"><span class="ptag">必做·难</span> · 2023 第4题（考生回忆版） · 限时 30 分钟</p>
+<div class="stem"><p>字符串简化，如输入 CCCCCCCCCCCCCADCADCADAAAC，输出 12(C)3(CAD)AAAC。</p></div>
+<div class="req"><p class="lab">要求</p><p><code>simplify(s, out)</code>：s 只含大写字母，长度 &lt;= 100，把简化结果放进 out。规则：</p>
+<p>(1) 片段里不再嵌套括号，次数写成十进制；(2) 写出来的总长度最短；(3) 一样短时：压缩优先于不压缩；都压缩时片段短的优先；片段一样长时重复次数多的优先。</p>
+<p>例如 "AAAA" → "4(A)"，"AAAB" → "AAAB"，"ABABABAB" → "4(AB)"，题目的例子 → "12(C)3(CAD)AAAC"。</p></div>
+<ul class="hints"><li><b>依据</b>2023④。学长回忆里漏了这一题，2026-10 从另一份考生回忆里补上。2023 年四道 C 题里有三道是难题。</li><li><b>注意</b>回忆版没写规则。从例子反推：一个片段连续重复 k 次（k &gt;= 2）可以写成 k(片段)；例子挑的是整串写出来最短的写法（13 个 C 没写成 13(C)，因为借最后一个 C 组成 3(CAD) 更短；AAA 写成 3(A) 反而更长，所以不压）。考场上碰到规则不全的题，先在答卷上写清楚自己用的规则，再按规则写。</li><li><b>思路</b>从后往前算 best[i]：从第 i 个字符到末尾，最短能写成几个字符；同时记下第 i 步怎么写（片段长 L、次数 k）。先试压缩：L 从 1 往上，数出从 i 开始片段最多连续出现 kmax 次，k 从 kmax 试到 2，长度 = k 的位数 + L + 2 + best[i + L*k]，比当前记录小才换；最后试不压缩 1 + best[i+1]，也是小才换。算完从 i = 0 开始按记录一段一段拼出 out。</li></ul>
+<p class="refs">对应讲义　<a href="#s6">⑥</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>k 要从多往少试（13 个 C 里最好的是 12 次）；一样短不换；最后补 '\0'。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+#include &lt;string.h&gt;
+
+static int digits(int k)
+{
+    int d = 1;
+    while (k &gt;= 10) { k /= 10; d++; }
+    return d;
+}
+
+void simplify(const char *s, char *out)
+{
+    int n = strlen(s), best[105], useL[105], useK[105];
+    int i, L, k, kmax, cost, pos = 0;
+    best[n] = 0;
+    for (i = n - 1; i &gt;= 0; i--) {
+        best[i] = 100000;
+        useL[i] = 0;
+        for (L = 1; i + 2 * L &lt;= n; L++) {
+            kmax = 1;                                   /* 片段 s[i..i+L) 从 i 起连续出现几次 */
+            while (i + (kmax + 1) * L &lt;= n &amp;&amp; strncmp(s + i, s + i + kmax * L, L) == 0)
+                kmax++;
+            for (k = kmax; k &gt;= 2; k--) {
+                cost = digits(k) + L + 2 + best[i + L * k];
+                if (cost &lt; best[i]) { best[i] = cost; useL[i] = L; useK[i] = k; }
+            }
+        }
+        if (1 + best[i + 1] &lt; best[i]) {                /* 不压缩：只在严格更短时 */
+            best[i] = 1 + best[i + 1];
+            useL[i] = 0;
+        }
+    }
+    i = 0;
+    while (i &lt; n) {                                     /* 按记录拼出结果 */
+        if (useL[i] == 0) {
+            out[pos++] = s[i++];
+        } else {
+            pos += sprintf(out + pos, "%d(", useK[i]);
+            for (L = 0; L &lt; useL[i]; L++) out[pos++] = s[i + L];
+            out[pos++] = ')';
+            i += useL[i] * useK[i];
+        }
+    }
+    out[pos] = '\0';
+}
+
+int main(void)
+{
+    char s[105], out[210];
+    scanf("%104s", s);
+    simplify(s, out);
+    printf("%s\n", out);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>CCCCCCCCCCCCCADCADCADAAAC</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>12(C)3(CAD)AAAC</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t3" data-short="题3 同数异形体和奇偶交替">
+<h3><span class="no">题3</span><span class="t">同数异形体和奇偶交替</span></h3>
+<p class="pmeta"><span class="ptag">必做</span> · 2022 第2题（15 分）+ 2021 第2题</p>
+<div class="stem"><p>(1) 2022②：由相同的数字（包括数字个数）、不同的排列形成的正整数称为“同数异形体”。如 66167 和 16667</p>
+<p>均由 3 个 6、1 个 1、1 个 7 组成，故互为同数异形体；而 6617 与 66671 则不是。请设计程序实现同数异形体的判定。</p>
+<p>(2) 2021②：奇偶交替数，输入一个整数，相邻两位数字一个奇一个偶。例如 12345 是奇偶交替数，而 2234 不是。</p></div>
+<div class="req"><p class="lab">要求</p><p>两个函数。</p>
+<p>(1) <code>same_form(a, b)</code>：正整数 a、b 互为同数异形体返回 1，否则返回 0。</p>
+<p>a == b 返回 0（定义里说的是「不同的排列」）。</p>
+<p>(2) <code>is_alternate(x)</code>：正整数 x 的每两个相邻数字都是一奇一偶，返回 1；否则返回 0。一位数算是，返回 1。</p></div>
+<ul class="hints"><li><b>依据</b>两问都是原题。2022② 试卷卷头原文是「请设计程序实现同数异形体的判定」；2021② 两份考生回忆说法一致：判断一个数是不是奇偶交替数。</li><li><b>注意</b>学长回忆把 2021② 记成了「把各位数字重新构造成奇偶交替的数」，参考程序也是按这个意思写的，题意错了。</li><li><b>思路</b>(1) 两个 cnt[10] 计数数组，各拆一遍位再逐个比较。不用排序。(2) 从个位往高位拆，记住上一位的奇偶，和这一位比；有一处相同就不是。</li></ul>
+<p class="refs">对应讲义　<a href="#s5">⑤</a></p>
+<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
+<div class="prog-body">
+<p class="tip"><b>易错</b>计数数组比较代替排序；a == b 按定义返回 0；奇偶交替要和「上一位」比，一位数直接算是。</p>
+<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
+
+static void count_digits(int x, int cnt[10])
+{
+    int i;
+    for (i = 0; i &lt; 10; i++) cnt[i] = 0;
+    do {                                        /* do-while：x 是 0 时也数一位 */
+        cnt[x % 10]++;
+        x /= 10;
+    } while (x &gt; 0);
+}
+
+int same_form(int a, int b)
+{
+    int ca[10], cb[10], i;
+    if (a == b) return 0;
+    count_digits(a, ca);
+    count_digits(b, cb);
+    for (i = 0; i &lt; 10; i++)
+        if (ca[i] != cb[i]) return 0;
+    return 1;
+}
+
+int is_alternate(int x)
+{
+    int prev = x % 10, d;
+    x /= 10;
+    while (x &gt; 0) {
+        d = x % 10;
+        if (d % 2 == prev % 2) return 0;        /* 相邻两位奇偶相同 */
+        prev = d;
+        x /= 10;
+    }
+    return 1;
+}
+
+int main(void)
+{
+    int a, b, x;
+    scanf("%d %d %d", &amp;a, &amp;b, &amp;x);
+    if (same_form(a, b)) printf("%d 和 %d 互为同数异形体\n", a, b);
+    else printf("%d 和 %d 不是同数异形体\n", a, b);
+    if (is_alternate(x)) printf("%d 是奇偶交替数\n", x);
+    else printf("%d 不是奇偶交替数\n", x);
+    return 0;
+}</code></pre></div>
+<div class="io"><p class="lab">输入</p><pre>66167 16667 12345</pre></div>
+<div class="io"><p class="lab">运行结果</p><pre>66167 和 16667 互为同数异形体
+12345 是奇偶交替数</pre></div>
+</div></div>
+</section>
+<section class="sec prob" id="t4" data-short="题4 单词逆序">
+<h3><span class="no">题4</span><span class="t">单词逆序</span></h3>
+<p class="pmeta"><span class="ptag">选做</span> · 2017 第5题的延伸</p>
 <div class="stem"><p>输入一行英文，把单词的顺序颠倒后输出；单词之间只留一个空格，开头和结尾不留空格。</p>
 <pre class="fig">例如 "  I am   a student " 变成 "student a am I"。</pre></div>
 <div class="req"><p class="lab">要求</p><p><code>reverse_words(s, out)</code>：结果放进 out。s 是空串或者全是空格时，out 是空串。s 不能改。</p></div>
@@ -457,160 +593,6 @@ int main(void)
 <div class="io"><p class="lab">运行结果</p><pre>[student a am I]</pre></div>
 </div></div>
 </section>
-<section class="sec prob" id="t3" data-short="题3 同数异形体">
-<h3><span class="no">题3</span><span class="t">同数异形体</span></h3>
-<p class="pmeta"><span class="ptag">必做</span> · 2022 第2题（题干缺损，两种问法都出）</p>
-<div class="stem"><p>“同数异形体”的定义：由相同的数字（包括数字个数）、不同的排列形成的正整数，互为“同数异形体”。</p>
-<p>例如：66167 和 16667 均由 3 个 6、1 个 1、1 个 7 组成，故互为同数异形体；而 6617 与 66671（数字个数不同）则不是。</p></div>
-<div class="req"><p class="lab">要求</p><p>两个函数。</p>
-<p>(1) <code>same_form(a, b)</code>：正整数 a、b 互为同数异形体返回 1，否则返回 0。</p>
-<p>a == b 返回 0（定义里说的是「不同的排列」）。</p>
-<p>(2) <code>min_max_form(x, &amp;mn, &amp;mx)</code>：在和 x 数字相同（个数也相同）的正整数里，找最小的和最大的（包括 x 自己），不能有前导 0。x 最多 9 位。</p>
-<p>例如 x = 66167 → mn = 16667，mx = 76661；x = 1020 → mn = 1002，mx = 2100。</p></div>
-<ul class="hints"><li><b>依据</b>2022②。</li><li><b>注意</b>原题转写到定义就断了，没写要求做什么。学长参考程序是「输入两个数，输出是否互为同数异形体」，这是最可能的问法（问法一）；问法二是同一个知识点（数字计数）的常见延伸。</li><li><b>思路</b>(1) 两个 cnt[10] 计数数组，各拆一遍位再逐个比较。不用排序。(2) 先计数。最大：从 9 往 0 依次放；最小：第一位放最小的非 0 数字，后面从 0 往 9 放。</li></ul>
-<p class="refs">对应讲义　<a href="#s5">⑤</a></p>
-<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
-<div class="prog-body">
-<p class="tip"><b>易错</b>计数数组比较代替排序；a == b 按定义返回 0；最小数的第一位不能是 0。</p>
-<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
-
-static void count_digits(int x, int cnt[10])
-{
-    int i;
-    for (i = 0; i &lt; 10; i++) cnt[i] = 0;
-    do {                                        /* do-while：x 是 0 时也数一位 */
-        cnt[x % 10]++;
-        x /= 10;
-    } while (x &gt; 0);
-}
-
-int same_form(int a, int b)
-{
-    int ca[10], cb[10], i;
-    if (a == b) return 0;
-    count_digits(a, ca);
-    count_digits(b, cb);
-    for (i = 0; i &lt; 10; i++)
-        if (ca[i] != cb[i]) return 0;
-    return 1;
-}
-
-void min_max_form(int x, int *mn, int *mx)
-{
-    int cnt[10], c[10], d, i, v;
-    count_digits(x, cnt);
-    v = 0;                                      /* 最大：9 到 0 */
-    for (d = 9; d &gt;= 0; d--)
-        for (i = 0; i &lt; cnt[d]; i++) v = v * 10 + d;
-    *mx = v;
-    for (d = 0; d &lt; 10; d++) c[d] = cnt[d];
-    for (d = 1; d &lt; 10 &amp;&amp; c[d] == 0; d++)       /* 最小的非 0 数字放第一位 */
-        ;
-    v = d;
-    c[d]--;
-    for (d = 0; d &lt; 10; d++)
-        for (i = 0; i &lt; c[d]; i++) v = v * 10 + d;
-    *mn = v;
-}
-
-int main(void)
-{
-    int a, b, mn, mx;
-    scanf("%d %d", &amp;a, &amp;b);
-    if (same_form(a, b)) printf("%d 和 %d 互为同数异形体\n", a, b);
-    else printf("%d 和 %d 不是同数异形体\n", a, b);
-    min_max_form(a, &amp;mn, &amp;mx);
-    printf("和 %d 数字相同的数里，最小 %d，最大 %d\n", a, mn, mx);
-    return 0;
-}</code></pre></div>
-<div class="io"><p class="lab">输入</p><pre>66167 16667</pre></div>
-<div class="io"><p class="lab">运行结果</p><pre>66167 和 16667 互为同数异形体
-和 66167 数字相同的数里，最小 16667，最大 76661</pre></div>
-</div></div>
-</section>
-<section class="sec prob" id="t4" data-short="题4 奇偶交替重构">
-<h3><span class="no">题4</span><span class="t">奇偶交替重构</span></h3>
-<p class="pmeta"><span class="ptag">选做</span> · 2021 第2题（题干缺损，两种理解都出）</p>
-<div class="stem"><p>输入一个正整数（如 2234），请将其各位数字重新构造（或逐位修正），生成一个新的正整数，使得其各位数字奇偶交替，并输出该新数。</p></div>
-<div class="req"><p class="lab">要求</p><p>两个函数（x 最多 9 位）。</p>
-<p>(1) <code>fix_alternate(x)</code>：逐位修正。最高位不动；从左往右，某一位和它左边那位（已经修正过的）奇偶相同，就把它改成 1（这里需要奇数）或 0（这里需要偶数）。2234 → 2101，1357 → 1050。</p>
-<p>(2) <code>rearrange_alternate(x)</code>：重新排列。只用 x 原有的那些数字（个数不变），排成奇偶交替、没有前导 0 的最小的数；排不出来返回 -1。</p>
-<p>3021 → 1032，2234 → -1（三个偶数一个奇数），100 → -1（只能是 0 开头）。</p></div>
-<ul class="hints"><li><b>依据</b>2021②。</li><li><b>注意</b>「重新构造」和「逐位修正」是转写留下的两种说法，原题要哪种已经无法确定。考场上碰到题意不清，先在答卷上写一句「本题理解为……」，再按这个理解写。学长参考程序用的是逐位修正。</li><li><b>思路</b>(1) 先把各位拆进数组（高位在前），再从第 2 位起逐位看。(2) 奇数、偶数各有几个？差超过 1 就排不出。差 1 时开头的奇偶是定的；相等时两种开头都试，取小的。开头之后每一位的奇偶都定了，每次放剩下的同奇偶里最小的。</li></ul>
-<p class="refs">对应讲义　<a href="#s5">⑤</a> <a href="#s6">⑥</a></p>
-<div class="prog"><button class="prog-btn" type="button" aria-expanded="false">完整程序</button>
-<div class="prog-body">
-<p class="tip"><b>易错</b>(1) 和「修正后」的左边那位比；(2) 奇偶个数差 &gt; 1 排不出，开头不能是 0，两种开头都要试。</p>
-<div class="code" data-label="完整程序"><pre><code class="c">#include &lt;stdio.h&gt;
-
-static int split(int x, int d[])                /* 拆位，高位在前，返回位数 */
-{
-    int t[12], n = 0, i;
-    do { t[n++] = x % 10; x /= 10; } while (x &gt; 0);
-    for (i = 0; i &lt; n; i++) d[i] = t[n - 1 - i];
-    return n;
-}
-
-int fix_alternate(int x)
-{
-    int d[12], n = split(x, d), i, v = d[0];
-    for (i = 1; i &lt; n; i++) {
-        if (d[i] % 2 == d[i - 1] % 2)
-            d[i] = d[i - 1] % 2 == 0 ? 1 : 0;   /* 左边偶 → 要奇数 → 1；左边奇 → 0 */
-        v = v * 10 + d[i];
-    }
-    return v;
-}
-
-/* 第一位的奇偶是 first（1 奇 0 偶），按「剩下的同奇偶里最小的」排；排不出返回 -1 */
-static int build(const int cnt0[10], int n, int first)
-{
-    int cnt[10], i, d, v = 0, want = first;
-    for (i = 0; i &lt; 10; i++) cnt[i] = cnt0[i];
-    for (i = 0; i &lt; n; i++) {
-        for (d = want; d &lt; 10; d += 2)
-            if (cnt[d] &gt; 0 &amp;&amp; !(i == 0 &amp;&amp; d == 0)) break;
-        if (d &gt;= 10) return -1;
-        cnt[d]--;
-        v = v * 10 + d;
-        want = 1 - want;
-    }
-    return v;
-}
-
-int rearrange_alternate(int x)
-{
-    int d[12], n = split(x, d), cnt[10] = {0}, odd = 0, even, i, a, b;
-    for (i = 0; i &lt; n; i++) {
-        cnt[d[i]]++;
-        if (d[i] % 2) odd++;
-    }
-    even = n - odd;
-    if (odd - even &gt; 1 || even - odd &gt; 1) return -1;
-    if (odd &gt; even) return build(cnt, n, 1);
-    if (even &gt; odd) return build(cnt, n, 0);
-    a = build(cnt, n, 1);
-    b = build(cnt, n, 0);
-    if (a &lt; 0) return b;
-    if (b &lt; 0) return a;
-    return a &lt; b ? a : b;
-}
-
-int main(void)
-{
-    int x, r;
-    scanf("%d", &amp;x);
-    printf("逐位修正：%d\n", fix_alternate(x));
-    r = rearrange_alternate(x);
-    if (r == -1) printf("重新排列：排不出奇偶交替的数\n");
-    else printf("重新排列：%d\n", r);
-    return 0;
-}</code></pre></div>
-<div class="io"><p class="lab">输入</p><pre>2234</pre></div>
-<div class="io"><p class="lab">运行结果</p><pre>逐位修正：2101
-重新排列：排不出奇偶交替的数</pre></div>
-</div></div>
-</section>
 <section class="recall" id="recall">
 <h2>开始之前，先回想一下</h2>
 <p>这些是前面学过、这一环又要用到的基础。想不起来就回到出处那一节再看一眼。</p>
@@ -622,7 +604,7 @@ int main(void)
 </section>
 <div class="part" id="p1">
 <h2>套路</h2>
-<p>四道题用到的四个模板。每个模板先背骨架，再看它在哪一步最容易错。</p>
+<p>四道题用到的五个模板。每个模板先背骨架，再看它在哪一步最容易错。</p>
 </div>
 <section class="sec" id="gu" data-short="骨架">
 <h3><span class="t">暴力匹配骨架（题1）</span></h3>
@@ -678,22 +660,58 @@ out[k] = '\0';</code></pre></div>
 <p class="q">从键盘输入两个字符串 a、b，连接成 c，再把 c 按升序排序输出 → <span class="a" tabindex="0">连接（环08 ⑤）+ 字符冒泡排序（环06 ①），排序的是 c[0] 到 c[len−1] 这些字符</span><span class="src">川师卷2016-17 四-2</span></p>
 </div>
 </section>
-<section class="sec" id="s5" data-short="⑤ 计数数组">
-<h3><span class="no">⑤</span><span class="t">数字计数：cnt[10] 代替排序</span></h3>
+<section class="sec" id="s5" data-short="⑤ 计数和拆位">
+<h3><span class="no">⑤</span><span class="t">数字题：cnt[10] 代替排序，拆位时记住上一位</span></h3>
 <p>「由相同的数字组成」= 0–9 每个数字出现的次数都相同。拆位时 <code>cnt[x % 10]++</code>，两个数各拆一遍，比较两个 cnt 数组。</p>
 <div class="code"><pre><code class="c">do {
     cnt[x % 10]++;
     x /= 10;
 } while (x &gt; 0);                        // do-while：x 为 0 时也数一位</code></pre></div>
-<p>用计数数组<b>构造</b>数：</p>
-<ul><li>最大：d 从 9 到 0，每个 d 放 cnt[d] 个。</li><li>最小：第一位放<b>最小的非 0 数字</b>，其余 d 从 0 到 9 放。1020 的最小是 <span class="a" tabindex="0">1002</span>，不是 0012。</li></ul>
 <p>位数相同、数字不同的反例要会举：6617 和 66671 位数就不同；112 和 122 <span class="a" tabindex="0">位数相同但数字个数不同</span>。</p>
+<p><b>奇偶交替数</b>（2021②）：相邻两位一奇一偶。拆位是从个位往高位走的，每拆出一位，和<b>上一次拆出的那位</b>比奇偶：</p>
+<div class="code"><pre><code class="c">prev = x % 10;  x /= 10;
+while (x &gt; 0) {
+    d = x % 10;
+    if (d % 2 == prev % 2) return 0;    // 有一处相邻同奇偶就不是
+    prev = d;  x /= 10;
+}
+return 1;                               // 一位数直接走到这里：算是</code></pre></div>
+<div class="calc">
+  <code>12345</code><span class="arrow">→</span><span><span class="a" tabindex="0">是</span> <span class="note">5 4 3 2 1 依次奇偶奇偶奇</span></span>
+  <code>1000</code><span class="arrow">→</span><span><span class="a" tabindex="0">不是</span> <span class="note">末两位都是 0</span></span>
+  <code>10</code><span class="arrow">→</span><span><span class="a" tabindex="0">是</span> <span class="note">0 偶、1 奇</span></span>
+</div>
+<p>用计数数组还能<b>构造</b>数：最大的从 9 往 0 放；最小的第一位放最小的非 0 数字，其余从 0 往 9 放，1020 的最小是 <span class="a" tabindex="0">1002</span>。</p>
 </section>
-<section class="sec" id="s6" data-short="⑥ 题意不清">
-<h3><span class="no">⑥</span><span class="t">题意不清：先写理解，再按理解做</span></h3>
-<p>2021②、2022② 的题干都缺字。考场上碰到题意模糊：</p>
-<ul><li>在答卷开头写一句「本题理解为：……」，再按这个理解写完整；</li><li>选<b>能写完、能自圆其说</b>的理解，不要在两种理解之间来回改。</li></ul>
-<p>奇偶交替的「重排」理解，先算奇数、偶数各几个：差大于 1 一定排不出；差 1 时开头必须是多的那一类；相等时两种开头都试，取小的。开头还不能是 0：100 只能 0 开头，所以 <span class="a" tabindex="0">排不出</span>。</p>
+<section class="sec" id="s6" data-short="⑥ 最短写法">
+<h3><span class="no">⑥</span><span class="t">字符串简化：从后往前，记下每个位置的最优写法</span></h3>
+<p>2023④ 的例子 <code>CCCCCCCCCCCCCADCADCADAAAC</code> → <code>12(C)3(CAD)AAAC</code>。只看开头会以为是「13 个 C 写成 13(C)」，可最后一个 C 拿去和后面组成 CAD 更短。<b>从左往右贪心会错</b>，要比较所有分法。</p>
+<p>设 best[i] = 从第 i 个字符到末尾，最短能写成几个字符。末尾 best[n] = 0。第 i 个位置只有两类写法：</p>
+<ul><li><b>不压缩</b>：s[i] 原样写，长度 1 + best[i+1]；</li><li><b>压缩</b>：片段长 L、连续 k 次（k ≥ 2），写成 <code>k(片段)</code>，长度 = k 的位数 + L + 2 + best[i + L·k]。</li></ul>
+<p>i 从 n−1 往 0 算，后面的 best 都已经算好了。每个 i 选最小的，同时记下选的 L、k。最后从 i = 0 开始照记录拼一遍。</p>
+<div class="code"><pre><code class="c">best[n] = 0;
+for (i = n - 1; i &gt;= 0; i--) {
+    best[i] = 很大;
+    for (L = 1; i + 2 * L &lt;= n; L++) {
+        数出片段 s[i..i+L) 连续出现 kmax 次;
+        for (k = kmax; k &gt;= 2; k--)      // 13 个 C 里最好的是 12 次，所以每个 k 都要试
+            if (位数(k) + L + 2 + best[i + L*k] &lt; best[i]) 记下 L、k;
+    }
+    if (1 + best[i + 1] &lt; best[i]) 记成不压缩;
+}</code></pre></div>
+<ul><li>「一样短时」选哪个要自己定规则并写在注释里。3 个 A：<code>AAA</code> 和 <code>3(A)</code> 是 3 比 4，不压；4 个 A：<code>AAAA</code> 和 <code>4(A)</code> 一样长，按本题文件的约定<span class="a" tabindex="0">压成 4(A)</span>。</li><li>片段可以不止一个字母：<code>ABABABAB</code> → <code>4(AB)</code>；<code>AAB</code> 重复 4 次 → <code>4(AAB)</code>。</li><li>k 是两位数、三位数时位数要算对：100 个 A 写成 <span class="a" tabindex="0">100(A)</span>，长度 6。</li></ul>
+<div class="calc">
+  <code>"AAABBBBBB"</code><span class="arrow">→</span><span><span class="a" tabindex="0">AAA6(B)</span> <span class="note">前 3 个不压更短</span></span>
+  <code>"ABBBBBBBA"</code><span class="arrow">→</span><span><span class="a" tabindex="0">A7(B)A</span> <span class="note">中间 7 个 B 压</span></span>
+  <code>"ABCDABCDXYXYXYXYXY"</code><span class="arrow">→</span><span><span class="a" tabindex="0">2(ABCD)5(XY)</span> <span class="note">两种片段各压一段</span></span>
+</div>
+<p class="mute small">这种「从后往前、每一步都用后面已经算好的最优值」的写法，数据结构里叫动态规划。C 卷里不会要求你说名字，会写就行。时间不够时，先写<b>只压单个字母</b>的版本（数连续相同的字母，k ≥ 4 才压），能拿一部分分。</p>
+</section>
+<section class="sec" id="s7" data-short="⑦ 题意不清">
+<h3><span class="no">⑦</span><span class="t">题意不清：先写理解，再按理解做</span></h3>
+<p>2021–2023 的题都是考生回忆，2022② 的卷头、2023④ 的规则都缺字。考场上碰到题意模糊：</p>
+<ul><li>在答卷开头写一句「本题理解为：……」，再按这个理解写完整；</li><li>选<b>能写完、能自圆其说</b>的理解，不要在两种理解之间来回改；</li><li>用题目给的例子验算一遍：你的规则跑出来要和例子<span class="a" tabindex="0">一模一样</span>。</li></ul>
+<p>学长回忆把 2021② 记成了「把数字重新排成奇偶交替的数」，这就是题意记错的例子；两份考生回忆都说是「判断是不是奇偶交替数」，以多数为准。</p>
 </section>
 <div class="part" id="p2">
 <h2>易错清单</h2>
@@ -712,7 +730,7 @@ out[k] = '\0';</code></pre></div>
 <p><code>strncmp(a, b, m)</code> 比较前 m 个字符，相同返回 0。<code>strncmp("abcde" + 1, "bcx", 2)</code> 的值是 <span class="a" tabindex="0">0</span>。不想用库函数，就写一个 j 循环逐个比（骨架那样）。</p>
 </section>
     <div class="end">
-      <nav class="ringnav"><span></span><a href="index.html#ba"><small>目录</small>拔高 7 个专题</a><a href="b02.html"><small>下一个 →</small>拔02 矩阵综合</a></nav>
+      <nav class="ringnav"><span></span><a href="index.html#ba"><small>目录</small>拔高 8 个专题</a><a href="b02.html"><small>下一个 →</small>拔02 矩阵综合</a></nav>
     </div>
 
   </main>
